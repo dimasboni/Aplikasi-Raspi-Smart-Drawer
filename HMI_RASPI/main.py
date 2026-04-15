@@ -846,9 +846,8 @@ def main(page: ft.Page):
         # Pastikan tombol btn_exit ini masuk ke dalam Column daftar controls
         layout = build_standard_layout(
             ft.Column([
-                ft.Container(height=40),
+                ft.Container(height=20),
                 ft.Text("Smart Drawer System", size=40, weight="bold", color=TEXT_COLOR),
-               
                 ft.Row([
                     create_menu_card("Admin", "Kelola sistem", "admin.png", "#E3F2FD", lambda _: show_rfid_page("Scan Kartu Admin", show_login_admin, show_home, "admin")),
                     create_menu_card("User", "Pinjam alat", "user.png", "#E8F5E9", lambda _: show_menu_user())
