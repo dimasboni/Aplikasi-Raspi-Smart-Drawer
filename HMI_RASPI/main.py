@@ -2269,7 +2269,7 @@ def main(page: ft.Page):
                     ft.Container(
                         content=ft.Text(
                             "Smart Drawer System",
-                            size=70,
+                            size=65,
                             weight="bold",
                             color=TEXT_COLOR,
                         ),
