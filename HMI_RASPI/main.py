@@ -1221,7 +1221,46 @@ def main(page: ft.Page):
         login_btn = create_filled_button(
             "Login", "#1F2937", do_login, width=340, height=50
         )
-        page.add(build_standard_layout(content_control=ft.Container(content=ft.Column([ft.Container(content=ft.Image(src="/login.png", width=60, height=60), bgcolor="#E3F2FD", padding=20, border_radius=50), ft.Text("Admin Login", size=24, weight="bold", color=TEXT_COLOR), ft.Container(height=5), ft.Column([ft.Text("Username", weight="bold", color="black"), username_field, ft.Text("Password", weight="bold", color="black"), password_field, teks_error], spacing=5), login_btn], horizontal_alignment="center", spacing=15), width=450, bgcolor="white", padding=40, border_radius=20, shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR), margin=ft.margin.only(top=-100)), back_func=show_home))
+        page.add(
+            build_standard_layout(
+                content_control=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Container(
+                                content=ft.Image(src="/login.png", width=60, height=60),
+                                bgcolor="#E3F2FD",
+                                padding=20,
+                                border_radius=50,
+                            ),
+                            ft.Text(
+                                "Admin Login", size=24, weight="bold", color=TEXT_COLOR
+                            ),
+                            ft.Container(height=5),
+                            ft.Column(
+                                [
+                                    ft.Text("Username", weight="bold", color="black"),
+                                    username_field,
+                                    ft.Text("Password", weight="bold", color="black"),
+                                    password_field,
+                                    teks_error,
+                                ],
+                                spacing=5,
+                            ),
+                            login_btn,
+                        ],
+                        horizontal_alignment="center",
+                        spacing=15,
+                    ),
+                    width=450,
+                    bgcolor="white",
+                    padding=40,
+                    border_radius=20,
+                    shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+                    margin=ft.margin.only(top=-100),
+                ),
+                back_func=show_home,
+            )
+        )
 
     # ==========================================================================
     # --- HALAMAN USER (UI USER) ---
