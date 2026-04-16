@@ -585,7 +585,7 @@ def main(page: ft.Page):
                 print(f"ERROR SAAT LOGIN: {err}")
                 page.update()
         login_btn = create_filled_button("Login", "#1F2937", do_login, width=340, height=50)
-        page.add(build_standard_layout(ft.Column([ft.Container(content=ft.Column([ft.Container(content=ft.Image(src="/login.png", width=60, height=60), bgcolor="#E3F2FD", padding=20, border_radius=50), ft.Text("Admin Login", size=24, weight="bold", color=TEXT_COLOR), ft.Container(height=5), ft.Column([ft.Text("Username", weight="bold", color="black"), username_field, ft.Text("Password", weight="bold", color="black"), password_field, teks_error], spacing=5), login_btn], horizontal_alignment="center", spacing=15), width=450, bgcolor="white", padding=40, border_radius=20, shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR), alignment=ft.Alignment(0, 0))], horizontal_alignment="center", alignment="center"), back_func=show_home))
+        page.add(build_standard_layout(ft.Column([ft.Container(content=ft.Column([ft.Container(content=ft.Image(src="/login.png", width=60, height=60), bgcolor="#E3F2FD", padding=20, border_radius=50), ft.Text("Admin Login", size=24, weight="bold", color=TEXT_COLOR), ft.Container(height=5), ft.Column([ft.Text("Username", weight="bold", color="black"), username_field, ft.Text("Password", weight="bold", color="black"), password_field, teks_error], spacing=5), login_btn], horizontal_alignment="center", spacing=15), width=450, bgcolor="white", padding=40, border_radius=20, shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR), alignment=ft.Alignment(0, 0))], horizontal_alignment="center", alignment="center"), ft.Container(margin=ft.margin.only(top=-65)), back_func=show_home))
 
     # ==========================================================================
     # --- HALAMAN USER (UI USER) ---
@@ -847,7 +847,7 @@ def main(page: ft.Page):
         # Pastikan tombol btn_exit ini masuk ke dalam Column daftar controls
         layout = build_standard_layout(
             ft.Column([
-                ft.Container(content=ft.Text("Smart Drawer System", size=70, weight="bold", color=TEXT_COLOR), margin=ft.margin.only(top=-65)),
+                ft.Container(content=ft.Text("Smart Drawer System", size=60, weight="bold", color=TEXT_COLOR), margin=ft.margin.only(top=-65)),
                 ft.Container(height=30),
                 ft.Row([
                     create_menu_card("Admin", "Kelola sistem", "admin.png", "#E3F2FD", lambda _: show_rfid_page("Scan Kartu Admin", show_login_admin, show_home, "admin")),
