@@ -49,7 +49,7 @@ def create_menu_card(title, subtitle, img, bg_icon, on_click):
                 ft.Container(
                     content=ft.Image(src=f"/{img}", width=150, height=150),
                     bgcolor=bg_icon,
-                    padding=20,
+                    padding=50,
                     border_radius=50,
                 ),
                 ft.Text(title, size=35, weight="bold", color=TEXT_COLOR),
