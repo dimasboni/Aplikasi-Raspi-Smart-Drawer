@@ -2244,24 +2244,27 @@ def main(page: ft.Page):
 
         # 3. Buat tombol pintu darurat (Gunakan ElevatedButton standar)
         # Keluar Aplikasi (EXIT)
-        btn_exit = ft.ElevatedButton(
-            "MATIKAN SISTEM (EXIT)",
-            bgcolor="red",
-            color="white",
-            icon="power_settings_new",
-            icon_color="white",
-            on_click=lambda _: show_login_admin(
-                tujuan=lambda: page.run_task(keluar_aplikasi)
+        btn_exit = ft.Container(
+            content=ft.ElevatedButton(
+                "X",
+                bgcolor="red",
+                color="white",
+                on_click=lambda _: show_login_admin(
+                    tujuan=lambda: page.run_task(keluar_aplikasi)
+                ),
+                width=80, # Disesuaikan agar icon + X muat
+                height=45,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                    text_style=ft.TextStyle(weight="bold") # Tambahkan ini biar X nya tebal
+                ),
             ),
-            width=250,
-            height=50,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
         )
 
         # 4. Masukkan ke dalam layout UTAMA
         # Pastikan tombol btn_exit ini masuk ke dalam Column daftar controls
         layout = build_standard_layout(
-            ft.Column(
+            content_control=ft.Column(
                 [
                     ft.Container(
                         content=ft.Text(
@@ -2298,15 +2301,16 @@ def main(page: ft.Page):
                         alignment="center",
                         spacing=40,
                     ),
-                    ft.Container(height=30),
-                    # PASANG TOMBOLNYA DI SINI
-                    btn_exit,
                 ],
                 horizontal_alignment="center",
                 alignment=ft.MainAxisAlignment.START,
-            )
+            ),
+            # --- INI KUNCINYA ---
+            # Kita tidak pakai back_func karena ini menu utama
+            action_button=btn_exit # Otomatis nangkring di kanan atas!
         )
 
+        # 5. Langsung tempel ke layar, gak butuh Stack lagi!
         page.add(layout)
         page.update()
 
