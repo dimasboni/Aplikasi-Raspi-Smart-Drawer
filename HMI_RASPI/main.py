@@ -45,8 +45,6 @@ from ui_komponen import (
     build_standard_layout,
 )
 
-os.environ["FLET_DISPLAY_SCALE"] = "2.0"
-
 # ==============================================================================
 # --- MAIN PROGRAM FLET (RANGKA UTAMA) --
 # Di sinilah semua file pembantu tadi "bertemu" dan saling ngobrol!
@@ -62,17 +60,9 @@ def main(page: ft.Page):
     page.window.resizeable = False
     page.title = settings.get("cabinet_name", "Smart Drawer System")
     page.bgcolor = BG_COLOR
-    # page.window.width = PAGE_WIDTH
-    # page.window.height = PAGE_HEIGHT
-    # page.window.top = 0
-    # page.window.left = 0
     page.expand = True
     page.padding = 0
     page.spacing = 0
-
-    # try: page.window.center()
-    # except: page.window.center()
-
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
