@@ -1226,7 +1226,7 @@ def main(page: ft.Page):
                             ft.Text(
                                 "Admin Login", size=24, weight="bold", color=TEXT_COLOR
                             ),
-                            ft.Container(height=5),
+                           
                             ft.Column(
                                 [
                                     ft.Text("Username", weight="bold", color="black"),
@@ -1698,7 +1698,7 @@ def main(page: ft.Page):
                         weight="bold",
                         color="black",
                     ),
-                    ft.Container(height=15),
+                    ft.Container(height=5),
                     ft.Container(
                         content=list_container,
                         height=240,
