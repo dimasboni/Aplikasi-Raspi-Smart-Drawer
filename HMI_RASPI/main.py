@@ -1226,7 +1226,6 @@ def main(page: ft.Page):
                             ft.Text(
                                 "Admin Login", size=24, weight="bold", color=TEXT_COLOR
                             ),
-                           
                             ft.Column(
                                 [
                                     ft.Text("Username", weight="bold", color="black"),
