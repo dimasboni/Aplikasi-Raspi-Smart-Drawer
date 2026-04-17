@@ -45,6 +45,7 @@ from ui_komponen import (
     build_standard_layout,
 )
 
+os.environ["FLET_DISPLAY_SCALE"] = "2.0"
 
 # ==============================================================================
 # --- MAIN PROGRAM FLET (RANGKA UTAMA) --
