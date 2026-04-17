@@ -2265,7 +2265,6 @@ def main(page: ft.Page):
                         ),
                         margin=ft.margin.only(top=-65),
                     ),
-                    ft.Container(height=25),
                     ft.Row(
                         [
                             create_menu_card(
