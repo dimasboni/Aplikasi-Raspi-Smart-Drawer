@@ -2256,15 +2256,17 @@ def main(page: ft.Page):
         layout = build_standard_layout(
             content_control=ft.Column(
                 [
-                    ft.Container(
-                        content=ft.Text(
-                            "Smart Drawer System",
-                            size=65,
-                            weight="bold",
-                            color=TEXT_COLOR,
-                        ),
-                        margin=ft.margin.only(top=-65),
-                    ),
+                    
+                    #ft.Container(
+                    #    content=ft.Text(
+                    #        "Smart Drawer System",
+                    #        size=65,
+                    #        weight="bold",
+                    #        color=TEXT_COLOR,
+                    #    ),
+                    #    margin=ft.margin.only(top=-65),
+                    #),
+                    
                     ft.Row(
                         [
                             create_menu_card(
