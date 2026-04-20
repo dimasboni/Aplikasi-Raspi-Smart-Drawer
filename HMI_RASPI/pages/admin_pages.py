@@ -574,7 +574,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     alignment=ft.Alignment(0, 0),
                                 )
                             ),
-                        ]
+                        ], margin=ft.margin.only(top=-100)
                     )
                     for row in conn.cursor()
                     .execute(
@@ -1087,9 +1087,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 ft.Column(
                     [
                         ft.Text(
-                            "Admin Dashboard", size=36, weight="bold", color=TEXT_COLOR
+                            "Admin Dashboard", size=50, weight="bold", color=TEXT_COLOR
                         ),
-                        ft.Container(height=30),
+                        ft.Container(height=15),
                         ft.Row(
                             [
                                 create_menu_card(
@@ -1110,7 +1110,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             alignment="center",
                             spacing=30,
                         ),
-                        ft.Container(height=30),
                         create_filled_button(
                             "Logout",
                             "#F44336",

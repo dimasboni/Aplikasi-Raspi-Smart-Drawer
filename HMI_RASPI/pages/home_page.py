@@ -56,6 +56,12 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
             ),
         )
 
+        def pemicu_exit(e):
+            #memanggil login admin dulu sebelum benar-benar keluar
+            nav["show_login_admin"](
+                tujuan=lambda: page.run_task(keluar_aplikasi)
+            )
+
         layout = build_standard_layout(
             content_control=ft.Column(
                 [
@@ -89,7 +95,17 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                 horizontal_alignment="center",
                 alignment=ft.MainAxisAlignment.START,
             ),
-            action_button=btn_exit,
+            action_button=ft.PopupMenuButton(
+                icon="more_horiz",
+                icon_color="black",
+                items=[
+                    ft.PopupMenuItem(
+                        content=ft.Text("Exit Application"),
+                        on_click=pemicu_exit
+                    )
+                ]
+            )
+     
         )
 
         page.add(layout)
