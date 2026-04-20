@@ -73,7 +73,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             [
                                 create_menu_card(
                                     "Add Tools",
-
                                     "Tambah",
                                     "tambah.png",
                                     "#E8F5E9",
@@ -244,7 +243,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                             color="black", alignment=ft.Alignment(-1, 0)
                                         ),
                                         width=530,
-                                        on_click=lambda _, p=full_path: pilih_file_manual(p),
+                                        on_click=lambda _, p=full_path: pilih_file_manual(
+                                            p
+                                        ),
                                     ),
                                 ],
                                 alignment="start",
@@ -810,7 +811,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     else:
                         img_rotated = img.rotate(-90, expand=True)
 
-                    file_baru = f"tool_{int(time.time())}_{random.randint(100, 999)}.png"
+                    file_baru = (
+                        f"tool_{int(time.time())}_{random.randint(100, 999)}.png"
+                    )
                     img_rotated.save(f"assets/{file_baru}")
 
                 preview_img.content = ft.Image(
@@ -1110,19 +1113,21 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             alignment="center",
                             spacing=30,
                         ),
-                        create_filled_button(
-                            "Logout",
-                            "#F44336",
-                            lambda _: nav["show_home"](),
-                            width=300,
-                            height=50,
-                        ),
                     ],
                     horizontal_alignment="center",
                     alignment="center",
                     margin=ft.margin.only(top=-150),
                 ),
-                
+                action_button=ft.PopupMenuButton(
+                    icon="more_horiz",
+                    icon_color="black",
+                    items=[
+                        ft.PopupMenuItem(
+                            content=ft.Text("Logout"),
+                            on_click=lambda _: nav["show_home"](),
+                        )
+                    ],
+                )
             )
         )
 
