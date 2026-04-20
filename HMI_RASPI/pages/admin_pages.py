@@ -1123,7 +1123,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     icon_color="black",
                     items=[
                         ft.PopupMenuItem(
-                            content=ft.Text("Logout"),
+                            content=ft.Text("Logout", color="red"),
                             on_click=lambda _: nav["show_home"](),
                         )
                     ],
