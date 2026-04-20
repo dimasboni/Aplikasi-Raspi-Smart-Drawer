@@ -243,9 +243,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                             color="black", alignment=ft.Alignment(-1, 0)
                                         ),
                                         width=530,
-                                        on_click=lambda _, p=full_path: pilih_file_manual(
-                                            p
-                                        ),
+                                        on_click=lambda _, p=full_path: pilih_file_manual(p),
                                     ),
                                 ],
                                 alignment="start",
@@ -811,9 +809,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     else:
                         img_rotated = img.rotate(-90, expand=True)
 
-                    file_baru = (
-                        f"tool_{int(time.time())}_{random.randint(100, 999)}.png"
-                    )
+                    file_baru = f"tool_{int(time.time())}_{random.randint(100, 999)}.png"
                     img_rotated.save(f"assets/{file_baru}")
 
                 preview_img.content = ft.Image(
@@ -1125,8 +1121,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     ],
                     horizontal_alignment="center",
                     alignment="center",
-                ),
-                margin=ft.margin.only(top=-100),
+                )
             )
         )
 
