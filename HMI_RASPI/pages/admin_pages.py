@@ -575,7 +575,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     alignment=ft.Alignment(0, 0),
                                 )
                             ),
-                        ], margin=ft.margin.only(top=-150)
+                        ]
                     )
                     for row in conn.cursor()
                     .execute(
