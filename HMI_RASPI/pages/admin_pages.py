@@ -73,6 +73,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             [
                                 create_menu_card(
                                     "Add Tools",
+
                                     "Tambah",
                                     "tambah.png",
                                     "#E8F5E9",
@@ -574,7 +575,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     alignment=ft.Alignment(0, 0),
                                 )
                             ),
-                        ], margin=ft.margin.only(top=-100)
+                        ], margin=ft.margin.only(top=-150)
                     )
                     for row in conn.cursor()
                     .execute(
@@ -1089,7 +1090,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         ft.Text(
                             "Admin Dashboard", size=50, weight="bold", color=TEXT_COLOR
                         ),
-                        ft.Container(height=15),
                         ft.Row(
                             [
                                 create_menu_card(
