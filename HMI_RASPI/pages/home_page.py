@@ -96,8 +96,9 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                 alignment=ft.MainAxisAlignment.START,
             ),
             action_button=ft.PopupMenuButton(
-                icon="more_horiz",
-                icon_color="black",
+                icon=ft.Icons.EXIT_TO_APP_OUTLINED,
+                icon_color="red",
+                icon_size=50,
                 items=[
                     ft.PopupMenuItem(
                         content=ft.Text("Exit Application"),

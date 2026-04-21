@@ -47,7 +47,7 @@ from pages.flow_pages import register_flow_pages
 def main(page: ft.Page):
     # --- Pengaturan jendela ---
     page.window.maximized = True
-    page.window.frameless = True       # Hilangkan border & title bar
+    #page.window.frameless = True       # Hilangkan border & title bar
     page.window.focused = True
     page.window.fullscreen = True      # Fullscreen agar tidak bisa ditutup sembarangan
     page.window.resizeable = False

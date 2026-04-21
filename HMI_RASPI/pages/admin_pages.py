@@ -1119,8 +1119,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     margin=ft.margin.only(top=-150),
                 ),
                 action_button=ft.PopupMenuButton(
-                    icon="more_horiz",
-                    icon_color="black",
+                    icon=ft.Icons.LOGOUT_OUTLINED,
+                    icon_size=50,
+                    icon_color="red",
                     items=[
                         ft.PopupMenuItem(
                             content=ft.Text("Logout", color="red"),
