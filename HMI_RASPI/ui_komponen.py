@@ -47,7 +47,7 @@ def create_menu_card(title, subtitle, img, bg_icon, on_click):
         content=ft.Column(
             [
                 ft.Container(
-                    content=ft.Image(src=f"/{img}", width=150, height=150),
+                    content=ft.Image(src=f"/{img}", width=110, height=110),
                     bgcolor=bg_icon,
                     padding=20,
                     border_radius=100,

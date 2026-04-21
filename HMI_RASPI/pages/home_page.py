@@ -73,7 +73,7 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                                 "Admin",
                                 "Kelola sistem",
                                 "admin.png",
-                                "#E3F2FD",
+                                "#D1EAF0",
                                 lambda _: nav["show_rfid_page"](
                                     "Scan Kartu Admin",
                                     nav["show_login_admin"],
@@ -85,7 +85,7 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                                 "User",
                                 "Pinjam alat",
                                 "user.png",
-                                "#E8F5E9",
+                                "#D6F5D6",
                                 lambda _: nav["show_menu_user"](),
                             ),
                         ],

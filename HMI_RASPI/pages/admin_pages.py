@@ -1115,7 +1115,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     ],
                     horizontal_alignment="center",
                     alignment="center",
-                    margin=ft.margin.only(top=-150),
+                    margin=ft.margin.only(top=-100),
                 ),
                 action_button=ft.PopupMenuButton(
                     icon=ft.Icons.LOGOUT_OUTLINED,
