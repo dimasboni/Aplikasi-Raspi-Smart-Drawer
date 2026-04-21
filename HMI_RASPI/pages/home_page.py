@@ -63,6 +63,7 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
             )
 
         layout = build_standard_layout(
+            title_text="SMART DRAWER",
             content_control=ft.Column(
                 [
                     ft.Container(height=15),
@@ -96,7 +97,7 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                 alignment=ft.MainAxisAlignment.START,
             ),
             action_button=ft.PopupMenuButton(
-                icon=ft.Icons.FULLSCREEN_EXIT,
+                icon=ft.Icons.EXIT_TO_APP_SHARP,
                 icon_color="red",
                 icon_size=50,
                 items=[

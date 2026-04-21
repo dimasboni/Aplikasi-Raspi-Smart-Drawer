@@ -142,7 +142,7 @@ def build_standard_layout(
             ft.Container(
                 content=ft.Text(
                     title_text,
-                    size=28,
+                    size=50,
                     weight="bold",
                     color=TEXT_COLOR,
                     text_align="center",
