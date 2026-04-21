@@ -96,7 +96,7 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                 alignment=ft.MainAxisAlignment.START,
             ),
             action_button=ft.PopupMenuButton(
-                icon=ft.Icons.EXIT_TO_APP_OUTLINED,
+                icon=ft.Icons.FULLSCREEN_EXIT,
                 icon_color="red",
                 icon_size=50,
                 items=[
