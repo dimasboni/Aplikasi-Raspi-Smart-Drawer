@@ -1088,11 +1088,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         page.add(
             build_standard_layout(
-                ft.Column(
+                title_text="Admin Dashboard",
+                content_control=ft.Column(
                     [
-                        ft.Text(
-                            "Admin Dashboard", size=50, weight="bold", color=TEXT_COLOR
-                        ),
+                        ft.Container(height=15),
                         ft.Row(
                             [
                                 create_menu_card(
