@@ -1219,6 +1219,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         spacing=15,
                     ),
                     width=450,
+                    height=500,
                     bgcolor="white",
                     padding=40,
                     border_radius=20,
