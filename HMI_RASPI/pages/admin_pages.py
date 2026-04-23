@@ -1040,17 +1040,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
         form_card = build_standard_layout(
-            title_text="Add New Tools",
+            title_text="ADD NEW TOOLS",
             content_control=ft.Container(
                 content=ft.Column(
                     [
-                        # ft.Text(
-                        #   "Mendaftarkan Alat Baru",
-                        #  size=24,
-                        # weight="bold",
-                        # color=TEXT_COLOR,
-                        # ),
-                        # ft.Divider(color="#E5E7EB"),
                         ft.Row(
                             [kolom_kiri, kolom_kanan],
                             alignment="center",
