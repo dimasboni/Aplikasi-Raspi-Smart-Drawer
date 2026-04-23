@@ -1142,6 +1142,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
         username_field = ft.TextField(
             width=340,
+            text_size=20,
             hint_text="Masukkan username",
             color="black",
             filled=True,
@@ -1149,9 +1150,11 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             border_radius=8,
             content_padding=15,
             border_color="transparent",
+            autofocus=True
         )
         password_field = ft.TextField(
             width=340,
+            text_size=20, 
             hint_text="Masukkan password",
             color="black",
             password=True,
@@ -1160,7 +1163,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             bgcolor="#F3F4F6",
             border_radius=8,
             content_padding=15,
-            border_color="transparent",
+            border_color="transparent"
         )
 
         teks_error = ft.Text("", color="red", size=14, weight="bold")
@@ -1185,7 +1188,15 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as err:
                 print(f"ERROR SAAT LOGIN: {err}")
                 page.update()
+            
+            def pindah_ke_password(e):
+                print("Bisa bos")
+                password_field.focus()
+                page.update()
 
+            username_field.on_submit= pindah_ke_password
+            password_field.on_submit= do_login
+ 
         login_btn = create_filled_button(
             teks_button, "#1F2937", do_login, width=340, height=50
         )
