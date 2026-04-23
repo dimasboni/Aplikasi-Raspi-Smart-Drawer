@@ -59,7 +59,9 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
         def pemicu_exit(e):
             #memanggil login admin dulu sebelum benar-benar keluar
             nav["show_login_admin"](
-                tujuan=lambda: page.run_task(keluar_aplikasi)
+                tujuan=lambda: page.run_task(keluar_aplikasi),
+                teks_judul="Exit Application",
+                teks_button="EXIT"
             )
 
         layout = build_standard_layout(
@@ -102,7 +104,7 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                 icon_size=50,
                 items=[
                     ft.PopupMenuItem(
-                        content=ft.Text("Exit Application"),
+                        content=ft.Text("Exit Application", color="red"),
                         on_click=pemicu_exit
                     )
                 ]

@@ -1134,7 +1134,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW LOGIN ADMIN
     # ------------------------------------------------------------------
-    def show_login_admin(e=None, tujuan=None):
+    def show_login_admin(e=None, tujuan=None, teks_judul="Admin Login", teks_button="LOGIN"):
         page.clean()
 
         if tujuan is None:
@@ -1187,7 +1187,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 page.update()
 
         login_btn = create_filled_button(
-            "Login", "#1F2937", do_login, width=340, height=50
+            teks_button, "#1F2937", do_login, width=340, height=50
         )
         page.add(
             build_standard_layout(
@@ -1201,7 +1201,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 border_radius=50,
                             ),
                             ft.Text(
-                                "Admin Login", size=24, weight="bold", color=TEXT_COLOR
+                                teks_judul, size=24, weight="bold", color=TEXT_COLOR
                             ),
                             ft.Column(
                                 [
