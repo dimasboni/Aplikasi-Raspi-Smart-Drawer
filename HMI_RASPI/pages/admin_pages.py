@@ -1168,7 +1168,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
         teks_error = ft.Text("", color="red", size=14, weight="bold")
 
-        def do_login(e):
+        def do_login(e=None):
             teks_error.value = ""
             page.update()
             try:
@@ -1181,6 +1181,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                         .fetchone()
                     ):
+                        page.on_keyboard_event = None
                         tujuan()
                     else:
                         teks_error.value = "❌ Username atau password salah!"
@@ -1189,13 +1190,15 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 print(f"ERROR SAAT LOGIN: {err}")
                 page.update()
             
-            def pindah_ke_password(e):
-                print("Bisa bos")
-                password_field.focus()
-                page.update()
+        def enter_login(e: ft.KeyboardEvent):
+            if e.key == "Enter" or e.key == "Numpad Enter":
+                    do_login()
 
-            username_field.on_submit= pindah_ke_password
-            password_field.on_submit= do_login
+        page.on_keyboard_event = enter_login
+
+        def batal_login(e):
+            page.on_keyboard_event = None 
+            nav["show_home"]()
  
         login_btn = create_filled_button(
             teks_button, "#1F2937", do_login, width=340, height=50
@@ -1237,7 +1240,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
                     margin=ft.margin.only(top=-130),
                 ),
-                back_func=nav["show_home"],
+                back_func=batal_login,
             )
         )
 
