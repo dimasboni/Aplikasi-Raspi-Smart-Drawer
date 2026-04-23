@@ -38,30 +38,14 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
             print("2. Mematikan proses python...")
             os._exit(0)
 
-        # Tombol EXIT (hanya bisa dipencet setelah login admin)
-        btn_exit = ft.Container(
-            content=ft.ElevatedButton(
-                "X",
-                bgcolor="red",
-                color="white",
-                on_click=lambda _: nav["show_login_admin"](
-                    tujuan=lambda: page.run_task(keluar_aplikasi)
-                ),
-                width=80,
-                height=45,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                    text_style=ft.TextStyle(weight="bold"),
-                ),
-            ),
-        )
-
         def pemicu_exit(e):
-            #memanggil login admin dulu sebelum benar-benar keluar
+            # memanggil login admin dulu sebelum benar-benar keluar
             nav["show_login_admin"](
                 tujuan=lambda: page.run_task(keluar_aplikasi),
                 teks_judul="Exit Application",
-                teks_button="EXIT"
+                teks_button="EXIT",
+                button_color="red",
+                
             )
 
         layout = build_standard_layout(
@@ -105,11 +89,10 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                 items=[
                     ft.PopupMenuItem(
                         content=ft.Text("Exit Application", color="red"),
-                        on_click=pemicu_exit
+                        on_click=pemicu_exit,
                     )
-                ]
-            )
-     
+                ],
+            ),
         )
 
         page.add(layout)

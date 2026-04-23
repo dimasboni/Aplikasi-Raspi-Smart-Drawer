@@ -26,11 +26,11 @@ def get_rotation_angle(degrees):
 
 
 def create_filled_button(
-    text_str, bg_color, on_click_func, width=None, height=None, disabled=False
+    text_str, bg_color, on_click_func, width=None, height=None, disabled=False, text_size=16
 ):
     """Mencetak tombol standar dengan teks putih tebal"""
     return ft.FilledButton(
-        content=ft.Text(text_str, weight="bold", color="white"),
+        content=ft.Text(text_str, weight="bold", color="white", size=text_size),
         style=ft.ButtonStyle(
             bgcolor=bg_color, shape=ft.RoundedRectangleBorder(radius=8)
         ),
