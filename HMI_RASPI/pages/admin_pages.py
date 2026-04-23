@@ -601,7 +601,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             )
             page.add(
                 build_standard_layout(
-                    ft.Column(
+                    title_text="HISTORY",
+                    content_control=ft.Column(
                         [
                             ft.Container(
                                 content=ft.Column(
@@ -618,6 +619,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         ],
                         horizontal_alignment="center",
                         alignment="center",
+                        margin=ft.margin.only(top=-100)
                     ),
                     back_func=show_admin_dashboard,
                 )
@@ -1140,7 +1142,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         teks_judul="Admin Login",
         teks_button="LOGIN",
         button_color="#1F2937",
-        teks_size=20
+        teks_size=20,
     ):
         page.clean()
 
@@ -1208,12 +1210,12 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             nav["show_home"]()
 
         login_btn = create_filled_button(
-            teks_button, 
-            button_color, 
-            do_login, 
-            width=340, 
-            height=65, 
-            text_size=teks_size
+            teks_button,
+            button_color,
+            do_login,
+            width=340,
+            height=65,
+            text_size=teks_size,
         )
         page.add(
             build_standard_layout(
