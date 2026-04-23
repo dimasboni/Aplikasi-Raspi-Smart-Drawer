@@ -1221,10 +1221,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     width=450,
                     height=480,
                     bgcolor="white",
-                    padding=40,
+                    padding=20,
                     border_radius=20,
                     shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
-                    margin=ft.margin.only(top=-100),
+                    margin=ft.margin.only(top=-130),
                 ),
                 back_func=nav["show_home"],
             )
