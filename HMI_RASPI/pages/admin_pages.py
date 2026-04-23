@@ -1127,14 +1127,21 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             on_click=lambda _: nav["show_home"](),
                         )
                     ],
-                )
+                ),
             )
         )
 
     # ------------------------------------------------------------------
     # SHOW LOGIN ADMIN
     # ------------------------------------------------------------------
-    def show_login_admin(e=None, tujuan=None, teks_judul="Admin Login", teks_button="LOGIN"):
+    def show_login_admin(
+        e=None,
+        tujuan=None,
+        teks_judul="Admin Login",
+        teks_button="LOGIN",
+        button_color="#1F2937",
+        teks_size=20
+    ):
         page.clean()
 
         if tujuan is None:
@@ -1150,11 +1157,11 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             border_radius=8,
             content_padding=15,
             border_color="transparent",
-            autofocus=True
+            autofocus=True,
         )
         password_field = ft.TextField(
             width=340,
-            text_size=20, 
+            text_size=20,
             hint_text="Masukkan password",
             color="black",
             password=True,
@@ -1163,7 +1170,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             bgcolor="#F3F4F6",
             border_radius=8,
             content_padding=15,
-            border_color="transparent"
+            border_color="transparent",
         )
 
         teks_error = ft.Text("", color="red", size=14, weight="bold")
@@ -1189,19 +1196,24 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as err:
                 print(f"ERROR SAAT LOGIN: {err}")
                 page.update()
-            
+
         def enter_login(e: ft.KeyboardEvent):
             if e.key == "Enter" or e.key == "Numpad Enter":
-                    do_login()
+                do_login()
 
         page.on_keyboard_event = enter_login
 
         def batal_login(e):
-            page.on_keyboard_event = None 
+            page.on_keyboard_event = None
             nav["show_home"]()
- 
+
         login_btn = create_filled_button(
-            teks_button, "#1F2937", do_login, width=340, height=50
+            teks_button, 
+            button_color, 
+            do_login, 
+            width=340, 
+            height=65, 
+            text_size=teks_size
         )
         page.add(
             build_standard_layout(
