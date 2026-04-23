@@ -65,9 +65,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         page.add(
             build_standard_layout(
-                ft.Column(
+                title_text="EDIT TOOLS",
+                content_control=ft.Column(
                     [
-                        ft.Text("Edit Tools", size=32, weight="bold", color=TEXT_COLOR),
                         ft.Container(height=20),
                         ft.Row(
                             [
@@ -92,6 +92,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     ],
                     horizontal_alignment="center",
                     alignment="center",
+                    margin=ft.margin.only(top=-100),
                 ),
                 back_func=show_admin_dashboard,
             )
@@ -619,7 +620,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         ],
                         horizontal_alignment="center",
                         alignment="center",
-                        margin=ft.margin.only(top=-100)
+                        margin=ft.margin.only(top=-100),
                     ),
                     back_func=show_admin_dashboard,
                 )
@@ -1038,46 +1039,51 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             spacing=15,
         )
 
-        form_card = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text(
-                        "Mendaftarkan Alat Baru",
-                        size=24,
-                        weight="bold",
-                        color=TEXT_COLOR,
-                    ),
-                    ft.Divider(color="#E5E7EB"),
-                    ft.Row(
-                        [kolom_kiri, kolom_kanan],
-                        alignment="center",
-                        vertical_alignment="start",
-                        spacing=40,
-                    ),
-                    notif_text,
-                    create_filled_button(
-                        "Simpan Data Alat",
-                        GREEN_SENSOR,
-                        simpan_alat_baru,
-                        width=750,
-                        height=45,
-                    ),
-                ],
-                horizontal_alignment="center",
-                spacing=10,
-            ),
-            width=850,
-            bgcolor="white",
-            padding=25,
-            border_radius=20,
-            shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
+        form_card = build_standard_layout(
+            title_text="Add New Tools",
+            content_control=ft.Container(
+                content=ft.Column(
+                    [
+                        # ft.Text(
+                        #   "Mendaftarkan Alat Baru",
+                        #  size=24,
+                        # weight="bold",
+                        # color=TEXT_COLOR,
+                        # ),
+                        # ft.Divider(color="#E5E7EB"),
+                        ft.Row(
+                            [kolom_kiri, kolom_kanan],
+                            alignment="center",
+                            vertical_alignment="start",
+                            spacing=40,
+                        ),
+                        notif_text,
+                        create_filled_button(
+                            "Simpan Data Alat",
+                            GREEN_SENSOR,
+                            simpan_alat_baru,
+                            width=750,
+                            height=45,
+                        ),
+                    ],
+                    horizontal_alignment="center",
+                    spacing=10,
+                ),
+                width=850,
+                bgcolor="white",
+                padding=25,
+                border_radius=20,
+                shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
+            )
         )
-
         page.overlay.append(dialog_tambah_browser)
         page.add(
             build_standard_layout(
                 ft.Column(
-                    [form_card], horizontal_alignment="center", alignment="center"
+                    [form_card],
+                    horizontal_alignment="center",
+                    alignment="center",
+                    margin=ft.margin.only(top=-100),
                 ),
                 back_func=show_edit_tools_menu,
             )
