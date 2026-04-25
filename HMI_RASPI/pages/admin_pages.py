@@ -101,7 +101,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW MANAGE TOOLS PAGE  (dengan pagination)
     # ------------------------------------------------------------------
-    def show_manage_tools_page(e=None, halaman_sekarang=1):
+    def show_manage_tools_page(e=None):
         page.clean()
         page.overlay.clear()
 
@@ -354,7 +354,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                         conn.commit()
                         dialog_edit.open = False
-                        show_manage_tools_page(halaman_sekarang=halaman_sekarang)
+                        show_manage_tools_page()
                 except Exception:
                     pass
 
@@ -412,26 +412,21 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         "DELETE FROM tools WHERE name = ?", (nama_alat,)
                     )
                     conn.commit()
-                show_manage_tools_page(halaman_sekarang=halaman_sekarang)
+                show_manage_tools_page()
             except Exception:
                 pass
 
         # ---- Buat daftar alat dengan pagination ----
-        list_ui = ft.Column(spacing=10)
-        item_per_halaman = 5
-        offset = (halaman_sekarang - 1) * item_per_halaman
+        list_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
         try:
             with sqlite3.connect("smartdrawer.db") as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM tools")
-                total_alat = cursor.fetchone()[0]
                 cursor.execute(
-                    "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools LIMIT ? OFFSET ?",
-                    (item_per_halaman, offset),
+                    "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools",
                 )
                 semua_alat = cursor.fetchall()
         except Exception:
-            semua_alat, total_alat = [], 0
+            semua_alat= []
 
         for baris in semua_alat:
             nama_alat, topik, rfid_alat, gambar_alat = (
@@ -486,41 +481,13 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             )
             list_ui.controls.append(kotak_alat)
 
-        sisa_alat = total_alat - (halaman_sekarang * item_per_halaman)
-        baris_tombol_halaman = ft.Row(
-            [
-                ft.ElevatedButton(
-                    "⬅️ Prev",
-                    disabled=(halaman_sekarang == 1),
-                    on_click=lambda _: show_manage_tools_page(
-                        halaman_sekarang=halaman_sekarang - 1
-                    ),
-                ),
-                ft.Text(f"Halaman {halaman_sekarang}", weight="bold", size=16),
-                ft.ElevatedButton(
-                    "Next ➡️",
-                    disabled=not (sisa_alat > 0),
-                    on_click=lambda _, h=halaman_sekarang: show_manage_tools_page(
-                        halaman_sekarang=h + 1
-                    ),
-                ),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
+        
 
         main_card = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text(
-                        "Daftar Alat di Sistem",
-                        size=24,
-                        weight="bold",
-                        color=TEXT_COLOR,
-                    ),
                     ft.Container(height=10),
-                    list_ui,
-                    ft.Container(height=10),
-                    baris_tombol_halaman,
+                    ft.Container(content=list_ui, height=300),
                 ],
                 horizontal_alignment="center",
             ),
@@ -532,7 +499,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
         tampilan = build_standard_layout(
-            ft.Column([main_card], horizontal_alignment="center", alignment="center", margin=ft.margin.only(top=-100)),
+            title_text="List Tool on the System",
+            content_control=ft.Column([main_card], horizontal_alignment="center", alignment="center", margin=ft.margin.only(top=-100)),
             back_func=show_edit_tools_menu,
         )
         page.add(tampilan)
