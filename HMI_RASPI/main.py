@@ -60,7 +60,7 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     # --- Nyalakan sensor di latar belakang ---
-    jalankan_sensor_background()
+    #jalankan_sensor_background()
 
     # --- Data sesi bersama (dibagikan ke semua halaman) ---
     session_data = {"user_now": "Guest"}

@@ -532,7 +532,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
         tampilan = build_standard_layout(
-            ft.Column([main_card], horizontal_alignment="center", alignment="center"),
+            ft.Column([main_card], horizontal_alignment="center", alignment="center", margin=ft.margin.only(top=-100)),
             back_func=show_edit_tools_menu,
         )
         page.add(tampilan)
