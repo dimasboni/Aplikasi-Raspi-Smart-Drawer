@@ -365,18 +365,21 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             dialog_edit.on_dismiss = (
                 lambda _: setattr(dialog_edit, "open", False) or page.update()
             )
-            dialog_edit.content = ft.Column(
+            kolom_kiri_edit=ft.Column(
                 [
                     input_nama,
                     input_rfid,
-                    ft.Divider(),
+                ],
+                width=250
+            )
+            kolom_edit_kanan=ft.Column(
+                [
                     ft.ElevatedButton(
                         "Pilih Gambar dari Perangkat",
                         bgcolor="#E3F2FD",
                         color="blue",
                         on_click=buka_browser_manual,
                     ),
-                    ft.Divider(),
                     ft.Row(
                         [
                             preview_img,
@@ -384,12 +387,43 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 "Putar 90°", icon="rotate_right", on_click=putar_gambar
                             ),
                         ],
-                        alignment="center",
-                        spacing=20,
-                    ),
+                    )
                 ],
-                tight=True,
-                spacing=15,
+                width=300
+            )
+            
+            dialog_edit.content = ft.Row(
+                [
+                    kolom_kiri_edit, kolom_edit_kanan
+                ],
+                alignment="center",
+                spacing=15
+
+
+            #    [
+            #        input_nama,
+            #        input_rfid,
+            #        ft.Divider(),
+            #        ft.ElevatedButton(
+            #            "Pilih Gambar dari Perangkat",
+            #            bgcolor="#E3F2FD",
+            #            color="blue",
+            #            on_click=buka_browser_manual,
+            #        ),
+            #        ft.Divider(),
+            #        ft.Row(
+            #            [
+            #                preview_img,
+            #                ft.ElevatedButton(
+            #                    "Putar 90°", icon="rotate_right", on_click=putar_gambar
+            #                ),
+            #            ],
+            #            alignment="center",
+            #            spacing=20,
+            #        ),
+            #    ],
+            #    tight=True,
+            #    spacing=15,
             )
 
             dialog_edit.actions = [
