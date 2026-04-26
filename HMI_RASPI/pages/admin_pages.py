@@ -370,7 +370,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     input_nama,
                     input_rfid,
                 ],
-                width=250
+                width=250,
+                height=200
             )
             kolom_edit_kanan=ft.Column(
                 [
@@ -389,7 +390,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         ],
                     )
                 ],
-                width=300
+                width=300,
+                height=200
             )
             
             dialog_edit.content = ft.Row(
