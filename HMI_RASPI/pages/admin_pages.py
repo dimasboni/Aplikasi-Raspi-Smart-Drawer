@@ -22,6 +22,7 @@ import time
 import random
 import shutil
 import sqlite3
+import asyncio
 
 import flet as ft
 from PIL import Image as PILImage
@@ -110,7 +111,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             title=ft.Text("Telusuri File Perangkat", weight="bold", color="black"),
             bgcolor="white",
         )
-        page.overlay.extend([dialog_edit, dialog_browser])
+        dialog_hapus = ft.AlertDialog(title=ft.Text("Memuat..."), modal=True, bgcolor="white")
+        page.overlay.extend([dialog_edit, dialog_browser, dialog_hapus])
         page.update()
 
         # ---- Sub-fungsi: buka dialog edit alat ----
@@ -448,9 +450,49 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         "DELETE FROM tools WHERE name = ?", (nama_alat,)
                     )
                     conn.commit()
-                show_manage_tools_page()
             except Exception:
                 pass
+
+        def konfirmasi_hapus(nama_alat):
+            def tutup_dialog(e):
+                dialog_hapus.open=False
+                page.update()
+
+            def jalankan_hapus(e):
+                dialog_hapus.open=False
+                page.update()
+                hapus_alat_db(nama_alat)
+
+                async def tunda_lalu_refresh():
+                    await asyncio.sleep(0.4)
+                    show_manage_tools_page()
+                    page.update()
+
+                page.run_task(tunda_lalu_refresh)
+                
+
+            dialog_hapus.title= ft.Text("Konfirmasi Otorisasi", weight="bold", color="black")
+            dialog_hapus.content= ft.Text(f"Apakah anda yakin ingin menghapus'{nama_alat}' dari sistem ?", color="black")
+
+            dialog_hapus.actions = [
+                ft.ElevatedButton(
+                    "Batal",
+                    on_click=tutup_dialog,
+                    style=ft.ButtonStyle(color="grey")
+
+                ),
+                ft.ElevatedButton(
+                    "Hapus",
+                    on_click=jalankan_hapus,
+                    bgcolor="red",
+                    color="white"
+                )
+                
+
+            ]
+            dialog_hapus.open=True
+            page.update()
+            
 
         # ---- Buat daftar alat dengan pagination ----
         list_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
@@ -503,7 +545,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 "🗑️ Hapus", size=14, color="red", weight="bold"
                             ),
                             padding=10,
-                            on_click=lambda _, n=nama_alat: hapus_alat_db(n),
+                            on_click=lambda _, n=nama_alat: konfirmasi_hapus(n),
                             ink=True,
                         ),
                     ],
