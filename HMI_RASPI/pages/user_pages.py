@@ -38,9 +38,9 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         page.add(
             build_standard_layout(
-                ft.Column(
+                title_text="Menu User",
+                content_control=ft.Column(
                     [
-                        ft.Text("Menu User", size=36, weight="bold", color=TEXT_COLOR),
                         ft.Container(height=30),
                         ft.Row(
                             [
@@ -67,7 +67,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                     ],
                     horizontal_alignment="center",
                     alignment="center",
-                    margin=ft.margin.only(top=-150)
+                    margin=ft.margin.only(top=-100)
                 ),
                 back_func=nav["show_home"],
             )

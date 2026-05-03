@@ -1084,9 +1084,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             spacing=15,
         )
 
-        Save_card = build_standard_layout(
-            title_text="Tool Has been Added!", content_control=ft.Container(), back_func=show_edit_tools_menu
-        )
+        #Save_card = build_standard_layout(
+         #   title_text="Tool Has been Added!", content_control=ft.Container(), back_func=show_edit_tools_menu
+        #)
 
         form_card = build_standard_layout(
             title_text="ADD NEW TOOLS",
