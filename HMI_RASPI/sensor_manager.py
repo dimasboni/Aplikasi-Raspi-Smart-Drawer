@@ -9,7 +9,7 @@ status_sensor_realtime = {
 }
 
 # --- KONFIGURASI MQTT ---
-MQTT_BROKER = settings.get("mqqt_broker", "10.195.71.120")
+MQTT_BROKER = settings.get("mqqt_broker", "localhost")
 MQTT_PORT = settings.get("mqqt_port", 1883)
 
 def on_mqtt_connect(client, userdata, flags, rc):

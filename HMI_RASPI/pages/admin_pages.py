@@ -111,9 +111,17 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             title=ft.Text("Telusuri File Perangkat", weight="bold", color="black"),
             bgcolor="white",
         )
-        dialog_hapus = ft.AlertDialog(title=ft.Text("Memuat..."), modal=True, bgcolor="white")
+        dialog_hapus = ft.AlertDialog(
+            title=ft.Text("Memuat..."), modal=True, bgcolor="white"
+        )
         page.overlay.extend([dialog_edit, dialog_browser, dialog_hapus])
         page.update()
+
+        
+        async def tunda_lalu_refresh():
+            await asyncio.sleep(0.4)
+            show_manage_tools_page()
+            page.update()
 
         # ---- Sub-fungsi: buka dialog edit alat ----
         def buka_dialog_edit(nama_alat_lama, rfid_lama, gambar_lama):
@@ -356,7 +364,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                         conn.commit()
                         dialog_edit.open = False
-                        show_manage_tools_page()
+                        page.run_task(tunda_lalu_refresh)
+
                 except Exception:
                     pass
 
@@ -367,15 +376,15 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             dialog_edit.on_dismiss = (
                 lambda _: setattr(dialog_edit, "open", False) or page.update()
             )
-            kolom_kiri_edit=ft.Column(
+            kolom_kiri_edit = ft.Column(
                 [
                     input_nama,
                     input_rfid,
                 ],
                 width=250,
-                height=200
+                height=200,
             )
-            kolom_edit_kanan=ft.Column(
+            kolom_edit_kanan = ft.Column(
                 [
                     ft.ElevatedButton(
                         "Pilih Gambar dari Perangkat",
@@ -390,44 +399,40 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 "Putar 90°", icon="rotate_right", on_click=putar_gambar
                             ),
                         ],
-                    )
+                    ),
                 ],
                 width=300,
-                height=200
+                height=200,
             )
-            
+
             dialog_edit.content = ft.Row(
-                [
-                    kolom_kiri_edit, kolom_edit_kanan
-                ],
+                [kolom_kiri_edit, kolom_edit_kanan],
                 alignment="center",
-                spacing=15
-
-
-            #    [
-            #        input_nama,
-            #        input_rfid,
-            #        ft.Divider(),
-            #        ft.ElevatedButton(
-            #            "Pilih Gambar dari Perangkat",
-            #            bgcolor="#E3F2FD",
-            #            color="blue",
-            #            on_click=buka_browser_manual,
-            #        ),
-            #        ft.Divider(),
-            #        ft.Row(
-            #            [
-            #                preview_img,
-            #                ft.ElevatedButton(
-            #                    "Putar 90°", icon="rotate_right", on_click=putar_gambar
-            #                ),
-            #            ],
-            #            alignment="center",
-            #            spacing=20,
-            #        ),
-            #    ],
-            #    tight=True,
-            #    spacing=15,
+                spacing=15,
+                #    [
+                #        input_nama,
+                #        input_rfid,
+                #        ft.Divider(),
+                #        ft.ElevatedButton(
+                #            "Pilih Gambar dari Perangkat",
+                #            bgcolor="#E3F2FD",
+                #            color="blue",
+                #            on_click=buka_browser_manual,
+                #        ),
+                #        ft.Divider(),
+                #        ft.Row(
+                #            [
+                #                preview_img,
+                #                ft.ElevatedButton(
+                #                    "Putar 90°", icon="rotate_right", on_click=putar_gambar
+                #                ),
+                #            ],
+                #            alignment="center",
+                #            spacing=20,
+                #        ),
+                #    ],
+                #    tight=True,
+                #    spacing=15,
             )
 
             dialog_edit.actions = [
@@ -455,44 +460,33 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
         def konfirmasi_hapus(nama_alat):
             def tutup_dialog(e):
-                dialog_hapus.open=False
+                dialog_hapus.open = False
                 page.update()
 
             def jalankan_hapus(e):
-                dialog_hapus.open=False
+                dialog_hapus.open = False
                 page.update()
                 hapus_alat_db(nama_alat)
-
-                async def tunda_lalu_refresh():
-                    await asyncio.sleep(0.4)
-                    show_manage_tools_page()
-                    page.update()
-
                 page.run_task(tunda_lalu_refresh)
-                
 
-            dialog_hapus.title= ft.Text("Konfirmasi Otorisasi", weight="bold", color="black")
-            dialog_hapus.content= ft.Text(f"Apakah anda yakin ingin menghapus'{nama_alat}' dari sistem ?", color="black")
+            dialog_hapus.title = ft.Text(
+                "Konfirmasi Otorisasi", weight="bold", color="black"
+            )
+            dialog_hapus.content = ft.Text(
+                f"Apakah anda yakin ingin menghapus'{nama_alat}' dari sistem ?",
+                color="black",
+            )
 
             dialog_hapus.actions = [
                 ft.ElevatedButton(
-                    "Batal",
-                    on_click=tutup_dialog,
-                    style=ft.ButtonStyle(color="grey")
-
+                    "Batal", on_click=tutup_dialog, style=ft.ButtonStyle(color="grey")
                 ),
                 ft.ElevatedButton(
-                    "Hapus",
-                    on_click=jalankan_hapus,
-                    bgcolor="red",
-                    color="white"
-                )
-                
-
+                    "Hapus", on_click=jalankan_hapus, bgcolor="red", color="white"
+                ),
             ]
-            dialog_hapus.open=True
+            dialog_hapus.open = True
             page.update()
-            
 
         # ---- Buat daftar alat dengan pagination ----
         list_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
@@ -504,7 +498,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 )
                 semua_alat = cursor.fetchall()
         except Exception:
-            semua_alat= []
+            semua_alat = []
 
         for baris in semua_alat:
             nama_alat, topik, rfid_alat, gambar_alat = (
@@ -559,8 +553,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             )
             list_ui.controls.append(kotak_alat)
 
-        
-
         main_card = ft.Container(
             content=ft.Column(
                 [
@@ -578,7 +570,12 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
         tampilan = build_standard_layout(
             title_text="List Tool on the System",
-            content_control=ft.Column([main_card], horizontal_alignment="center", alignment="center", margin=ft.margin.only(top=-100)),
+            content_control=ft.Column(
+                [main_card],
+                horizontal_alignment="center",
+                alignment="center",
+                margin=ft.margin.only(top=-100),
+            ),
             back_func=show_edit_tools_menu,
         )
         page.add(tampilan)
@@ -1014,8 +1011,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 notif_text.value = "✅ Alat berhasil ditambahkan!"
                 notif_text.color = "#10B981"
                 page.update()
-                time.sleep(1.0)
-                show_edit_tools_menu()
+                async def konfirmasi_simpan():
+                    await asyncio.sleep(1.0)
+                    show_edit_tools_menu()
+                page.run_task(konfirmasi_simpan)    
             except sqlite3.IntegrityError:
                 notif_text.value = "❌ Nama alat sudah ada di database!"
                 page.update()
@@ -1085,6 +1084,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             spacing=15,
         )
 
+        Save_card = build_standard_layout(
+            title_text="Tool Has been Added!", content_control=ft.Container(), back_func=show_edit_tools_menu
+        )
+
         form_card = build_standard_layout(
             title_text="ADD NEW TOOLS",
             content_control=ft.Container(
@@ -1113,7 +1116,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 padding=25,
                 border_radius=20,
                 shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
-            )
+            ),
         )
         page.overlay.append(dialog_tambah_browser)
         page.add(
