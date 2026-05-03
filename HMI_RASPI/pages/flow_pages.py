@@ -60,19 +60,34 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             content=ft.Column(
                 [
                     ft.Text("✅", size=80),
-                    ft.Text("Peminjaman Sukses!", size=28, weight="bold", color=GREEN_SENSOR),
-                    ft.Text(f"Alat {tool_name} berhasil dipinjam.", size=16, color="black"),
+                    ft.Text(
+                        "Peminjaman Sukses!", size=28, weight="bold", color=GREEN_SENSOR
+                    ),
+                    ft.Text(
+                        f"Alat {tool_name} berhasil dipinjam.", size=16, color="black"
+                    ),
                     ft.Container(height=10),
-                    ft.ProgressRing(width=25, height=25, color=GREEN_SENSOR, stroke_width=3),
+                    ft.ProgressRing(
+                        width=25, height=25, color=GREEN_SENSOR, stroke_width=3
+                    ),
                     ft.Text("Kembali ke layar utama...", size=12, color="grey"),
                 ],
-                alignment="center", horizontal_alignment="center", spacing=5,
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
             ),
-            width=450, padding=40, bgcolor="white", border_radius=20,
+            width=450,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
             alignment=ft.Alignment(0, 0),
         )
-        page.add(build_standard_layout(ft.Container(content=success_card, alignment=ft.Alignment(0, 0))))
+        page.add(
+            build_standard_layout(
+                ft.Container(content=success_card, alignment=ft.Alignment(0, 0))
+            )
+        )
 
         async def auto():
             await asyncio.sleep(4.0)
@@ -89,19 +104,37 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             content=ft.Column(
                 [
                     ft.Text("🎉", size=80),
-                    ft.Text("Pengembalian Berhasil!", size=28, weight="bold", color="#3B82F6"),
-                    ft.Text("Semua alat telah masuk ke dalam laci.", size=16, color="black"),
+                    ft.Text(
+                        "Pengembalian Berhasil!",
+                        size=28,
+                        weight="bold",
+                        color="#3B82F6",
+                    ),
+                    ft.Text(
+                        "Semua alat telah masuk ke dalam laci.", size=16, color="black"
+                    ),
                     ft.Container(height=10),
-                    ft.ProgressRing(width=25, height=25, color="#3B82F6", stroke_width=3),
+                    ft.ProgressRing(
+                        width=25, height=25, color="#3B82F6", stroke_width=3
+                    ),
                     ft.Text("Menutup sesi otomatis...", size=12, color="grey"),
                 ],
-                alignment="center", horizontal_alignment="center", spacing=5,
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
             ),
-            width=450, padding=40, bgcolor="white", border_radius=20,
+            width=450,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
             alignment=ft.Alignment(0, 0),
         )
-        page.add(build_standard_layout(ft.Container(content=success_card, alignment=ft.Alignment(0, 0))))
+        page.add(
+            build_standard_layout(
+                ft.Container(content=success_card, alignment=ft.Alignment(0, 0))
+            )
+        )
 
         async def auto():
             await asyncio.sleep(4.0)
@@ -120,17 +153,29 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         current_tool = scanned_tools[index]
         indicator = ft.Container(
             content=ft.Text("📥", size=50),
-            width=120, height=120, bgcolor="orange",
-            border_radius=60, alignment=ft.Alignment(0, 0), animate=300,
+            width=120,
+            height=120,
+            bgcolor="orange",
+            border_radius=60,
+            alignment=ft.Alignment(0, 0),
+            animate=300,
         )
         sensor_box = ft.Container(
-            content=indicator, width=800, height=350,
-            bgcolor="#FFF3E0", border_radius=20, alignment=ft.Alignment(0, 0),
-            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR), animate=300,
+            content=indicator,
+            width=800,
+            height=350,
+            bgcolor="#FFF3E0",
+            border_radius=20,
+            alignment=ft.Alignment(0, 0),
+            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR),
+            animate=300,
         )
         status_txt = ft.Text(
             f"MENUNGGU SENSOR IR...\nSilakan taruh {current_tool} ke posisinya ({index+1}/{len(scanned_tools)})",
-            size=18, color="black", weight="bold", text_align="center",
+            size=18,
+            color="black",
+            weight="bold",
+            text_align="center",
         )
 
         async def pantau_sensor_ditaruh():
@@ -147,8 +192,11 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         page.add(
             build_standard_layout(
-                ft.Column([sensor_box, ft.Container(height=10), status_txt],
-                          alignment="center", horizontal_alignment="center")
+                ft.Column(
+                    [sensor_box, ft.Container(height=10), status_txt],
+                    alignment="center",
+                    horizontal_alignment="center",
+                )
             )
         )
         page.run_task(pantau_sensor_ditaruh)
@@ -159,27 +207,40 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     def show_konfirmasi_kembali(scanned_tools):
         page.clean()
         list_ui = ft.Column(
-            [ft.Text(f"📦 {t}", size=18, color="black", weight="bold") for t in scanned_tools],
+            [
+                ft.Text(f"📦 {t}", size=18, color="black", weight="bold")
+                for t in scanned_tools
+            ],
             scroll=ft.ScrollMode.AUTO,
         )
         content = ft.Column(
             [
-                ft.Text("Yakin kembalikan alat berikut?", size=24, weight="bold", color="black"),
+                ft.Text(
+                    "Yakin kembalikan alat berikut?",
+                    size=24,
+                    weight="bold",
+                    color="black",
+                ),
                 ft.Container(height=10),
                 ft.Container(content=list_ui, height=200),
                 ft.Container(height=20),
                 create_filled_button(
-                    "Lanjut Buka Laci", "green",
+                    "Lanjut Buka Laci",
+                    "green",
                     lambda _: show_visual_sensor_kembali(scanned_tools, 0),
-                    width=400, height=50,
+                    width=400,
+                    height=50,
                 ),
             ],
-            horizontal_alignment="center", alignment="center",
+            horizontal_alignment="center",
+            alignment="center",
         )
         page.add(
             build_standard_layout(
                 content,
-                back_func=lambda _: show_scan_kembali(get_borrowed_tools(session_data["user_now"])),
+                back_func=lambda _: show_scan_kembali(
+                    get_borrowed_tools(session_data["user_now"])
+                ),
             )
         )
 
@@ -190,16 +251,26 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         scanned_items = []
         input_tag = ft.TextField(
-            autofocus=True, width=1, height=1, border=ft.InputBorder.NONE,
-            color="transparent", bgcolor="transparent", cursor_color="transparent",
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
             on_blur=lambda e: input_tag.focus(),
         )
-        status_text = ft.Text("Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold")
+        status_text = ft.Text(
+            "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold"
+        )
         scanned_list_ui = ft.ListView(spacing=10, height=180)
         btn_confirm = create_filled_button(
-            "Selesai & Konfirmasi", "#10B981",
+            "Selesai & Konfirmasi",
+            "#10B981",
             lambda _: show_konfirmasi_kembali(scanned_items),
-            width=600, height=50, disabled=True,
+            width=600,
+            height=50,
+            disabled=True,
         )
 
         def update_ui():
@@ -207,18 +278,29 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             for item in scanned_items:
                 scanned_list_ui.controls.append(
                     ft.Container(
-                        content=ft.Row([
-                            ft.Text("✅", size=18),
-                            ft.Text(item, weight="bold", color=TEXT_COLOR, expand=True),
-                            ft.Container(
-                                content=ft.Text("Terverifikasi", size=10, color="white"),
-                                bgcolor="#10B981",
-                                padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                                border_radius=10,
-                            ),
-                        ]),
-                        bgcolor="#F0FDF4", padding=15, border_radius=10,
-                        border=ft.border.all(1, "#BBF7D0"), width=580,
+                        content=ft.Row(
+                            [
+                                ft.Text("✅", size=18),
+                                ft.Text(
+                                    item, weight="bold", color=TEXT_COLOR, expand=True
+                                ),
+                                ft.Container(
+                                    content=ft.Text(
+                                        "Terverifikasi", size=10, color="white"
+                                    ),
+                                    bgcolor="#10B981",
+                                    padding=ft.padding.symmetric(
+                                        horizontal=8, vertical=4
+                                    ),
+                                    border_radius=10,
+                                ),
+                            ]
+                        ),
+                        bgcolor="#F0FDF4",
+                        padding=15,
+                        border_radius=10,
+                        border=ft.border.all(1, "#BBF7D0"),
+                        width=580,
                     )
                 )
             btn_confirm.disabled = len(scanned_items) == 0
@@ -265,19 +347,30 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 [
                     ft.Container(
                         content=ft.Image(src="/scanrfid.png", width=60, height=60),
-                        padding=10, bgcolor="#EFF6FF", border_radius=15,
+                        padding=10,
+                        bgcolor="#EFF6FF",
+                        border_radius=15,
                     ),
                     ft.Column(
                         [
-                            ft.Text("Area Scan Aktif", size=20, weight="bold", color=TEXT_COLOR),
+                            ft.Text(
+                                "Area Scan Aktif",
+                                size=20,
+                                weight="bold",
+                                color=TEXT_COLOR,
+                            ),
                             status_text,
                         ],
                         spacing=2,
                     ),
                 ],
-                alignment="center", spacing=20,
+                alignment="center",
+                spacing=20,
             ),
-            bgcolor="white", padding=20, border_radius=15, width=600,
+            bgcolor="white",
+            padding=20,
+            border_radius=15,
+            width=600,
             border=ft.border.all(2, BLUE_SENSOR),
             shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR),
             on_click=lambda _: input_tag.focus(),
@@ -291,9 +384,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 btn_confirm,
                 input_tag,
             ],
-            horizontal_alignment="center", alignment="center",
+            horizontal_alignment="center",
+            alignment="center",
+            margin=ft.margin.only(top=-100)
         )
-        page.add(build_standard_layout(content, back_func=nav["show_list_pinjaman_user"]))
+        page.add(
+            build_standard_layout(content, back_func=nav["show_list_pinjaman_user"])
+        )
         threading.Thread(
             target=lambda: [time.sleep(0.5), input_tag.focus(), page.update()]
         ).start()
@@ -305,8 +402,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         state = {"aktif": True}
         input_tag = ft.TextField(
-            autofocus=True, width=1, height=1, border=ft.InputBorder.NONE,
-            color="transparent", bgcolor="transparent", cursor_color="transparent",
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
             on_blur=lambda e: input_tag.focus() if state.get("aktif") else None,
         )
 
@@ -316,10 +418,10 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
             tujuan_func()
 
-        def proses_scan_tag(e):
+        async def proses_scan_tag(e, simu_uid=None):
             if not state["aktif"]:
                 return
-            uid_tag = str(e.control.value).strip()
+            uid_tag = simu_uid if simu_uid else str(e.control.value).strip()
             input_tag.disabled = True
             visual_card.border = ft.border.all(3, "#F59E0B")
             status_text.value = "Mencocokkan Data..."
@@ -344,14 +446,14 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         status_text.color = GREEN_SENSOR
                         page.update()
                         simpan_log(session_data["user_now"], nama_di_db, "PINJAM")
-                        time.sleep(0.5)
+                        await asyncio.sleep(0.5)
                         keluar_halaman(lambda: show_all_done(nama_di_db))
                     else:
                         visual_card.border = ft.border.all(3, "red")
                         status_text.value = f"SALAH ALAT!\nTerdeteksi: {nama_di_db}"
                         status_text.color = "red"
                         page.update()
-                        time.sleep(1.5)
+                        await asyncio.sleep(1.5)
                         visual_card.border = ft.border.all(2, BLUE_SENSOR)
                         status_text.value = f"Scan Tag RFID pada {tool_name}"
                         status_text.color = SUB_TEXT_COLOR
@@ -364,7 +466,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     status_text.value = "Tag Tidak Dikenal!"
                     status_text.color = "red"
                     page.update()
-                    time.sleep(1.5)
+                    await asyncio.sleep(1.5)
                     visual_card.border = ft.border.all(2, BLUE_SENSOR)
                     status_text.value = f"Scan Tag RFID pada {tool_name}"
                     status_text.color = SUB_TEXT_COLOR
@@ -389,30 +491,59 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 keluar_halaman(nav["show_home"])
 
         status_text = ft.Text(
-            f"Scan Tag RFID pada {tool_name}", size=16, color=SUB_TEXT_COLOR, text_align="center"
+            f"Scan Tag RFID pada {tool_name}",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
         )
         visual_card = ft.Container(
             content=ft.Column(
                 [
                     ft.Container(
                         content=ft.Image(src="/scanrfid.png", width=120, height=120),
-                        padding=20, bgcolor="#F8FAFC", border_radius=60,
+                        padding=20,
+                        bgcolor="#F8FAFC",
+                        border_radius=60,
                     ),
-                    ft.Text("Verifikasi Alat", size=24, weight="bold", color=TEXT_COLOR),
+                    ft.Text(
+                        "Verifikasi Alat", size=24, weight="bold", color=TEXT_COLOR
+                    ),
                     status_text,
                     ft.Container(height=10),
-                    ft.ProgressRing(width=25, height=25, color=BLUE_SENSOR, stroke_width=3),
+                    ft.ProgressRing(
+                        width=25, height=25, color=BLUE_SENSOR, stroke_width=3
+                    ),
+                    ft.Row(
+                        [
+                            create_filled_button(
+                                "Simulasi Scan Tag",
+                                "green",
+                                lambda coba_aja: page.run_task(
+                                    proses_scan_tag, coba_aja, simu_uid="1234556",
+                                ),
+                            )
+                        ],
+                        alignment="center",
+                    ),
                 ],
-                horizontal_alignment="center", alignment="center",
+                horizontal_alignment="center",
+                alignment="center",
             ),
-            width=450, padding=40, bgcolor="white", border_radius=20,
+            width=450,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
             border=ft.border.all(2, BLUE_SENSOR),
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
             on_click=lambda _: input_tag.focus() if state["aktif"] else None,
         )
         page.add(
             build_standard_layout(
-                ft.Column([visual_card, input_tag], horizontal_alignment="center", alignment="center"),
+                ft.Column(
+                    [visual_card, input_tag],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
                 back_func=lambda e: keluar_halaman(nav["show_home"]),
             )
         )
@@ -428,17 +559,28 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         indicator_circle = ft.Container(
             content=ft.Text(str(slot_num), size=60, weight="bold", color="white"),
-            width=120, height=120, bgcolor=BLUE_SENSOR,
-            border_radius=60, alignment=ft.Alignment(0, 0), animate=300,
+            width=120,
+            height=120,
+            bgcolor=BLUE_SENSOR,
+            border_radius=60,
+            alignment=ft.Alignment(0, 0),
+            animate=300,
         )
         sensor_box = ft.Container(
-            content=indicator_circle, width=800, height=350,
-            bgcolor="#EBF3FF", border_radius=20, alignment=ft.Alignment(0, 0),
-            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR), animate=300,
+            content=indicator_circle,
+            width=800,
+            height=350,
+            bgcolor="#EBF3FF",
+            border_radius=20,
+            alignment=ft.Alignment(0, 0),
+            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR),
+            animate=300,
         )
         status_txt = ft.Text(
             "MENUNGGU SENSOR IR...\nSilakan ambil barang di laci...",
-            size=18, color=SUB_TEXT_COLOR, text_align="center",
+            size=18,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
         )
 
         async def pantau_sensor_diambil():
@@ -454,8 +596,11 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         page.add(
             build_standard_layout(
-                ft.Column([sensor_box, ft.Container(height=10), status_txt],
-                          alignment="center", horizontal_alignment="center")
+                ft.Column(
+                    [sensor_box, ft.Container(height=10), status_txt],
+                    alignment="center",
+                    horizontal_alignment="center",
+                )
             )
         )
         page.run_task(pantau_sensor_diambil)
@@ -481,11 +626,14 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             build_standard_layout(
                 ft.Column(
                     [
-                        ft.Text(f"Posisi {name}", size=32, weight="bold", color=TEXT_COLOR),
+                        ft.Text(
+                            f"Posisi {name}", size=32, weight="bold", color=TEXT_COLOR
+                        ),
                         ft.Container(height=20),
                         ft.Container(content=pos_grid, height=300, width=600),
                     ],
-                    horizontal_alignment="center", alignment="center",
+                    horizontal_alignment="center",
+                    alignment="center",
                 ),
                 back_func=nav["show_peminjaman_page1"],
             )
@@ -494,12 +642,19 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW RFID PAGE (scan kartu user/admin)
     # ------------------------------------------------------------------
-    def show_rfid_page(title_text, next_destination_func, back_destination_func, tipe_akses="user"):
+    def show_rfid_page(
+        title_text, next_destination_func, back_destination_func, tipe_akses="user"
+    ):
         page.clean()
         state = {"aktif": True}
         input_rfid = ft.TextField(
-            autofocus=True, width=1, height=1, border=ft.InputBorder.NONE,
-            color="transparent", bgcolor="transparent", cursor_color="transparent",
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
             on_blur=lambda e: input_rfid.focus() if state.get("aktif") else None,
         )
 
@@ -577,47 +732,70 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 keluar_halaman(back_destination_func)
 
         status_text = ft.Text(
-            "Silakan tempelkan ID Card Anda", size=16, color=SUB_TEXT_COLOR, text_align="center"
+            "Silakan tempelkan ID Card Anda",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
         )
         visual_card = ft.Container(
             content=ft.Column(
                 [
                     ft.Container(
                         content=ft.Image(src="/scanrfid.png", width=120, height=120),
-                        padding=20, bgcolor="#F8FAFC", border_radius=60,
+                        padding=20,
+                        bgcolor="#F8FAFC",
+                        border_radius=60,
                     ),
                     ft.Text(title_text, size=24, weight="bold", color=TEXT_COLOR),
                     status_text,
                     ft.Container(height=10),
-                    ft.ProgressRing(width=25, height=25, color=BLUE_SENSOR, stroke_width=3),
+                    ft.ProgressRing(
+                        width=25, height=25, color=BLUE_SENSOR, stroke_width=3
+                    ),
                     ft.Row(
                         [
                             create_filled_button(
-                                "Simulasi Admin", "blue",
+                                "Simulasi Admin",
+                                "blue",
                                 lambda kejadian_klik: page.run_task(
-                                    proses_scan_usb, kejadian_klik, simu_uid="3676831940"
+                                    proses_scan_usb,
+                                    kejadian_klik,
+                                    simu_uid="3676831940",
                                 ),
                             ),
                             create_filled_button(
-                                "Simulasi User", "green",
+                                "Simulasi User",
+                                "green",
                                 lambda kejadian_klik: page.run_task(
-                                    proses_scan_usb, kejadian_klik, simu_uid="2344461204"
+                                    proses_scan_usb,
+                                    kejadian_klik,
+                                    simu_uid="2344461204",
                                 ),
                             ),
                         ],
-                        alignment="center", spacing=10,
+                        alignment="center",
+                        spacing=10,
                     ),
                 ],
-                horizontal_alignment="center", alignment="center",
+                horizontal_alignment="center",
+                alignment="center",
             ),
-            width=450, padding=40, bgcolor="white", border_radius=20, margin=ft.margin.only(top=-100),
+            width=450,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
+            margin=ft.margin.only(top=-100),
             border=ft.border.all(2, BLUE_SENSOR),
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
             on_click=lambda _: input_rfid.focus() if state["aktif"] else None,
         )
         page.add(
             build_standard_layout(
-                ft.Column([visual_card, input_rfid], horizontal_alignment="center", alignment="center"),
+                ft.Column(
+                    [visual_card, input_rfid],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
                 back_func=lambda e: keluar_halaman(back_destination_func),
             )
         )
