@@ -117,7 +117,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         page.overlay.extend([dialog_edit, dialog_browser, dialog_hapus])
         page.update()
 
-        
         async def tunda_lalu_refresh():
             await asyncio.sleep(0.4)
             show_manage_tools_page()
@@ -199,10 +198,13 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
                 try:
                     items = os.listdir(current_path[0])
-                
+
                 except PermissionError:
                     file_list_view.controls.append(
-                        ft.Text("Akses ditolak: Tidak memiliki izin untuk membuka folder ini.", color="red")
+                        ft.Text(
+                            "Akses ditolak: Tidak memiliki izin untuk membuka folder ini.",
+                            color="red",
+                        )
                     )
                     page.update()
                     return
@@ -212,10 +214,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     )
                     page.update()
                     return
-                
+
                 dirs = []
                 files = []
-                
+
                 for item in items:
                     full_path = os.path.join(current_path[0], item)
                     try:
@@ -225,9 +227,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             files.append(item)
                     except PermissionError:
                         pass
-                    except Exception: 
+                    except Exception:
                         pass
-                        
+
                 dirs.sort()
                 files.sort()
 
@@ -267,7 +269,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
                     file_list_view.controls.append(
                         ft.Row(
-                                [
+                            [
                                 thumb,
                                 ft.TextButton(
                                     f,
@@ -721,23 +723,44 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             current_path[0] = new_path
             update_browser_ui()
 
-        tombol_drive = ft.Row(
-            [
-                path_text,
-                ft.ElevatedButton(
-                    "💻 Drive C:",
-                    bgcolor=BG_COLOR,
-                    color=TEXT_COLOR,
-                    on_click=lambda _: navigate_browser("c:\\"),
-                ),
-                ft.ElevatedButton(
-                    "💻 Drive D:",
-                    bgcolor=BG_COLOR,
-                    color=TEXT_COLOR,
-                    on_click=lambda _: navigate_browser("D:\\"),
-                ),
-            ]
-        )
+        if os.name == "nt":
+            tombol_drive = ft.Row(
+                [
+                    path_text,
+                    ft.ElevatedButton(
+                        "💻 Drive C:",
+                        bgcolor=BG_COLOR,
+                        color=TEXT_COLOR,
+                        on_click=lambda _: navigate_browser("c:\\"),
+                    ),
+                    ft.ElevatedButton(
+                        "💻 Drive D:",
+                        bgcolor=BG_COLOR,
+                        color=TEXT_COLOR,
+                        on_click=lambda _: navigate_browser("D:\\"),
+                    ),
+                ]
+            )
+        else:
+            tombol_drive = ft.Row(
+                [
+                    path_text,
+                    ft.ElevatedButton(
+                        "🏠 Root (/)",
+                        icon="folder",
+                        bgcolor=BG_COLOR,
+                        color=TEXT_COLOR,
+                        on_click=lambda _: navigate_browser("/"),
+                    ),
+                    ft.ElevatedButton(
+                        "🔌 USB/Media",
+                        icon="usb",
+                        bgcolor=BG_COLOR,
+                        color=TEXT_COLOR,
+                        on_click=lambda _: navigate_browser("/media"),
+                    ),
+                ]
+            )
 
         def update_browser_ui():
             file_list_view.controls.clear()
@@ -1028,10 +1051,12 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 notif_text.value = "✅ Alat berhasil ditambahkan!"
                 notif_text.color = "#10B981"
                 page.update()
+
                 async def konfirmasi_simpan():
                     await asyncio.sleep(1.0)
                     show_edit_tools_menu()
-                page.run_task(konfirmasi_simpan)    
+
+                page.run_task(konfirmasi_simpan)
             except sqlite3.IntegrityError:
                 notif_text.value = "❌ Nama alat sudah ada di database!"
                 page.update()
@@ -1101,9 +1126,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             spacing=15,
         )
 
-        #Save_card = build_standard_layout(
-         #   title_text="Tool Has been Added!", content_control=ft.Container(), back_func=show_edit_tools_menu
-        #)
+        # Save_card = build_standard_layout(
+        #   title_text="Tool Has been Added!", content_control=ft.Container(), back_func=show_edit_tools_menu
+        # )
 
         form_card = build_standard_layout(
             title_text="ADD NEW TOOLS",
