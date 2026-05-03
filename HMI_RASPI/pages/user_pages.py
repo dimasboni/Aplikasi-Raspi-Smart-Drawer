@@ -41,7 +41,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                 title_text="Menu User",
                 content_control=ft.Column(
                     [
-                        ft.Container(height=30),
+                        ft.Container(height=15),
                         ft.Row(
                             [
                                 create_menu_card(

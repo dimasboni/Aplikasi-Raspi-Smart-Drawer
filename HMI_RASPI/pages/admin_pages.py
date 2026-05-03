@@ -199,74 +199,91 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
                 try:
                     items = os.listdir(current_path[0])
-                    dirs = []
-                    files = []
-                    for item in items:
-                        full_path = os.path.join(current_path[0], item)
+                
+                except PermissionError:
+                    file_list_view.controls.append(
+                        ft.Text("Akses ditolak: Tidak memiliki izin untuk membuka folder ini.", color="red")
+                    )
+                    page.update()
+                    return
+                except Exception as e:
+                    file_list_view.controls.append(
+                        ft.Text(f"Gagal membuka folder: {e}", color="red")
+                    )
+                    page.update()
+                    return
+                
+                dirs = []
+                files = []
+                
+                for item in items:
+                    full_path = os.path.join(current_path[0], item)
+                    try:
                         if os.path.isdir(full_path):
                             dirs.append(item)
                         elif item.lower().endswith((".png", ".jpg", ".jpeg")):
                             files.append(item)
-                    dirs.sort()
-                    files.sort()
+                    except PermissionError:
+                        pass
+                    except Exception: 
+                        pass
+                        
+                dirs.sort()
+                files.sort()
 
-                    for d in dirs:
-                        file_list_view.controls.append(
-                            ft.TextButton(
-                                d,
-                                icon="folder",
-                                icon_color="orange",
-                                style=ft.ButtonStyle(
-                                    color="black", alignment=ft.Alignment(-1, 0)
-                                ),
-                                width=580,
-                                on_click=lambda _, p=os.path.join(
-                                    current_path[0], d
-                                ): navigate_browser(p),
-                            )
-                        )
-
-                    for f in files:
-                        full_path = os.path.join(current_path[0], f)
-                        thumb_name = f"_thumb_{f}"
-                        thumb_path = os.path.join("assets", thumb_name)
-                        try:
-                            pil_img = PILImage.open(full_path)
-                            pil_img.thumbnail((35, 35))
-                            pil_img.save(thumb_path, format="PNG")
-                        except Exception:
-                            thumb_name = None
-
-                        if thumb_name:
-                            thumb = ft.Image(
-                                src=f"/{thumb_name}", width=35, height=35, fit="contain"
-                            )
-                        else:
-                            thumb = ft.Icon("image", color="#10B981")
-
-                        file_list_view.controls.append(
-                            ft.Row(
-                                [
-                                    thumb,
-                                    ft.TextButton(
-                                        f,
-                                        style=ft.ButtonStyle(
-                                            color="black", alignment=ft.Alignment(-1, 0)
-                                        ),
-                                        width=530,
-                                        on_click=lambda _, p=full_path: pilih_file_manual(
-                                            p
-                                        ),
-                                    ),
-                                ],
-                                alignment="start",
-                                vertical_alignment="center",
-                                height=45,
-                            )
-                        )
-                except Exception as e:
+                for d in dirs:
                     file_list_view.controls.append(
-                        ft.Text(f"Akses ditolak: {e}", color="red")
+                        ft.TextButton(
+                            d,
+                            icon="folder",
+                            icon_color="orange",
+                            style=ft.ButtonStyle(
+                                color="black", alignment=ft.Alignment(-1, 0)
+                            ),
+                            width=580,
+                            on_click=lambda _, p=os.path.join(
+                                current_path[0], d
+                            ): navigate_browser(p),
+                        )
+                    )
+
+                for f in files:
+                    full_path = os.path.join(current_path[0], f)
+                    thumb_name = f"_thumb_{f}"
+                    thumb_path = os.path.join("assets", thumb_name)
+                    try:
+                        pil_img = PILImage.open(full_path)
+                        pil_img.thumbnail((35, 35))
+                        pil_img.save(thumb_path, format="PNG")
+                    except Exception:
+                        thumb_name = None
+
+                    if thumb_name:
+                        thumb = ft.Image(
+                            src=f"/{thumb_name}", width=35, height=35, fit="contain"
+                        )
+                    else:
+                        thumb = ft.Icon("image", color="#10B981")
+
+                    file_list_view.controls.append(
+                        ft.Row(
+                                [
+                                thumb,
+                                ft.TextButton(
+                                    f,
+                                    style=ft.ButtonStyle(
+                                        color="black", alignment=ft.Alignment(-1, 0)
+                                    ),
+                                    width=530,
+                                    on_click=lambda _, p=full_path: pilih_file_manual(
+                                        p
+                                    ),
+                                ),
+                            ],
+                            alignment="start",
+                            vertical_alignment="center",
+                            height=45,
+                        )
                     )
                 page.update()
 
