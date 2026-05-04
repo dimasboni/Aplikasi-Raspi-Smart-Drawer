@@ -186,7 +186,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
             width=600, bgcolor="white", padding=30, border_radius=20,
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
             alignment=ft.Alignment(0, 0),
-            margin=ft.margin.only(top=-100)
+            margin=ft.margin.only(top=-150)
         )
         update_list()
         page.add(
