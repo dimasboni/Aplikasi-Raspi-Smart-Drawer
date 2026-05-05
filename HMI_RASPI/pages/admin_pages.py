@@ -921,7 +921,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         )
         input_rfid = ft.TextField(
             label="UID Tag RFID",
-            width=200,
+            width=210,
             border_color=BLUE_SENSOR,
             border_radius=10,
             read_only=True,
@@ -1068,6 +1068,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         # Layout form
         kolom_kiri = ft.Column(
             [
+                input_nama,
                 dd_laci,
                 dd_pin,
                 ft.Row(
@@ -1087,8 +1088,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
         kolom_kanan = ft.Column(
             [
-                input_nama,
-                ft.Container(height=10),
                 ft.Column(
                     [
                         ft.Row(
