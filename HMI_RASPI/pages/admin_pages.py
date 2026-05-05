@@ -660,7 +660,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 heading_row_color="#F3F4F6",
                 vertical_lines=ft.border.BorderSide(1, "#F3F4F6"),
                 horizontal_lines=ft.border.BorderSide(1, "#F3F4F6"),
-                column_spacing=30,
+                column_spacing=120,
             )
             page.add(
                 build_standard_layout(
