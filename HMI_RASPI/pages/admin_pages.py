@@ -1137,10 +1137,11 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     [
                         ft.Row(
                             [kolom_kiri, kolom_kanan],
-                            alignment="center",
                             vertical_alignment="start",
-                            spacing=40,
+                            width=750,
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
+                        ft.Container(height=10),
                         notif_text,
                         create_filled_button(
                             "Simpan Data Alat",
@@ -1154,8 +1155,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     spacing=10,
                 ),
                 width=850,
+                height=450,
                 bgcolor="white",
-                padding=25,
+                padding=ft.padding.only(left=25, right=25, top=50, bottom=25),
                 border_radius=20,
                 shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
             ),
