@@ -609,14 +609,14 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 rows = [
                     ft.DataRow(
                         cells=[
-                            ft.DataCell(ft.Text(str(row[0]), color="black")),
+                            ft.DataCell(ft.Text(str(row[0]), color="black", weight="bold", size=15)),
                             ft.DataCell(
-                                ft.Text(str(row[1]), weight="bold", color="black")
+                                ft.Text(str(row[1]), weight="bold", color="black", size=15)
                             ),
                             ft.DataCell(
                                 ft.Text(
                                     str(row[2]) if len(row) > 2 and row[2] else "-",
-                                    color="gray",
+                                    color="black",
                                 )
                             ),
                             ft.DataCell(
@@ -649,10 +649,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 ]
             table = ft.DataTable(
                 columns=[
-                    ft.DataColumn(ft.Text("User", weight="bold", color="black")),
-                    ft.DataColumn(ft.Text("Alat", weight="bold", color="black")),
-                    ft.DataColumn(ft.Text("Waktu", weight="bold", color="black")),
-                    ft.DataColumn(ft.Text("Status", weight="bold", color="black")),
+                    ft.DataColumn(ft.Text("User", weight="bold", color="black", size=20)),
+                    ft.DataColumn(ft.Text("Alat", weight="bold", color="black", size=20)),
+                    ft.DataColumn(ft.Text("Waktu", weight="bold", color="black", size=20)),
+                    ft.DataColumn(ft.Text("Status", weight="bold", color="black", size=20)),
                 ],
                 rows=rows,
                 border=ft.border.all(1, "#E5E7EB"),
@@ -660,7 +660,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 heading_row_color="#F3F4F6",
                 vertical_lines=ft.border.BorderSide(1, "#F3F4F6"),
                 horizontal_lines=ft.border.BorderSide(1, "#F3F4F6"),
-                column_spacing=120,
+                column_spacing=100,
             )
             page.add(
                 build_standard_layout(
