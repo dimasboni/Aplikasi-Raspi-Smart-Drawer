@@ -672,7 +672,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     [table],
                                     scroll=ft.ScrollMode.ALWAYS,
                                     height=350,
-                                    width=700, 
+                                    width=850,
                                     horizontal_alignment="center",
                                 ),
                                 bgcolor="white",
