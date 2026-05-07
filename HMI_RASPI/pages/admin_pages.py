@@ -328,30 +328,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 dialog_browser.open = False
                 page.update()
 
-            def putar_gambar(e):
-                file_lama = path_gambar_sekarang[0]
-                lokasi_lama = f"assets/{file_lama}"
-                try:
-                    with PILImage.open(lokasi_lama) as img:
-                        img_rotated = img.rotate(-90, expand=True)
-                        file_baru = (
-                            f"{os.path.splitext(file_lama)[0].split('_')[0]}"
-                            f"_{int(time.time())}_{random.randint(100, 999)}.png"
-                        )
-                        img_rotated.save(f"assets/{file_baru}")
-
-                    preview_img.content = ft.Image(
-                        src=f"/{file_baru}",
-                        width=150,
-                        height=150,
-                        fit="contain",
-                        animate_opacity=200,
-                    )
-                    path_gambar_sekarang[0] = file_baru
-                    page.update()
-                except Exception:
-                    pass
-
             def batal_edit(e):
                 dialog_edit.open = False
                 page.update()
@@ -401,57 +377,28 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     input_rfid,
                 ],
                 width=250,
-                height=200,
+                height=250,
             )
             kolom_edit_kanan = ft.Column(
                 [
-                    ft.ElevatedButton(
+                    ft.ElevatedButton( 
                         "Pilih Gambar dari Perangkat",
                         bgcolor="#E3F2FD",
                         color="blue",
                         on_click=buka_browser_manual,
                     ),
-                    ft.Row(
-                        [
-                            preview_img,
-                            ft.ElevatedButton(
-                                "Putar 90°", icon="rotate_right", on_click=putar_gambar
-                            ),
-                        ],
-                    ),
+                    preview_img,
                 ],
                 width=300,
-                height=200,
+                height=230,
+                horizontal_alignment="center",
+                spacing=15,
             )
 
             dialog_edit.content = ft.Row(
                 [kolom_kiri_edit, kolom_edit_kanan],
-                alignment="center",
-                spacing=15,
-                #    [
-                #        input_nama,
-                #        input_rfid,
-                #        ft.Divider(),
-                #        ft.ElevatedButton(
-                #            "Pilih Gambar dari Perangkat",
-                #            bgcolor="#E3F2FD",
-                #            color="blue",
-                #            on_click=buka_browser_manual,
-                #        ),
-                #        ft.Divider(),
-                #        ft.Row(
-                #            [
-                #                preview_img,
-                #                ft.ElevatedButton(
-                #                    "Putar 90°", icon="rotate_right", on_click=putar_gambar
-                #                ),
-                #            ],
-                #            alignment="center",
-                #            spacing=20,
-                #        ),
-                #    ],
-                #    tight=True,
-                #    spacing=15,
+                width=600,
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             )
 
             dialog_edit.actions = [
@@ -704,10 +651,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         # Preview Gambar
         preview_img = ft.Container(
             content=ft.Image(
-                src=f"/{path_gambar_baru[0]}", width=120, height=120, fit="contain"
+                src=f"/{path_gambar_baru[0]}", width=220, height=220, fit="contain"
             ),
-            width=120,
-            height=120,
+            width=220,
+            height=220,
         )
 
         # Dialog file browser
@@ -855,7 +802,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 shutil.copy(filepath, lokasi_simpan)
                 path_gambar_baru[0] = nama_baru
                 preview_img.content = ft.Image(
-                    src=f"/{nama_baru}", width=120, height=120, fit="contain"
+                    src=f"/{nama_baru}", width=220, height=220, fit="contain"
                 )
                 dialog_tambah_browser.open = False
                 page.update()
@@ -881,35 +828,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         def tutup_browser_tambah():
             dialog_tambah_browser.open = False
             page.update()
-
-        # Fungsi rotasi gambar
-        def putar_gambar_tambah(e):
-            file_sekarang = path_gambar_baru[0]
-            if file_sekarang == "tambah.png":
-                notif_text.value = "❌ Pilih Gambar Terlebih Dahulu"
-                page.update()
-                return
-
-            lokasi_file = f"assets/{file_sekarang}"
-            try:
-                with PILImage.open(lokasi_file) as img:
-                    if e.control.data == "kiri":
-                        img_rotated = img.rotate(90, expand=True)
-                    else:
-                        img_rotated = img.rotate(-90, expand=True)
-
-                    file_baru = (
-                        f"tool_{int(time.time())}_{random.randint(100, 999)}.png"
-                    )
-                    img_rotated.save(f"assets/{file_baru}")
-
-                preview_img.content = ft.Image(
-                    src=f"/{file_baru}", width=120, height=120, fit="contain"
-                )
-                path_gambar_baru[0] = file_baru
-                page.update()
-            except Exception as err:
-                print(f"Error rotasi:{err}")
 
         # Input Fields
         input_nama = ft.TextField(
@@ -1090,26 +1008,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             [
                 ft.Column(
                     [
-                        ft.Row(
-                            [
-                                ft.ElevatedButton(
-                                    "↺ Putar Kiri",
-                                    data="kiri",
-                                    on_click=putar_gambar_tambah,
-                                    color=BLUE_SENSOR,
-                                    bgcolor="#E3F2FD",
-                                ),
-                                ft.ElevatedButton(
-                                    "Putar Kanan ↻",
-                                    data="kanan",
-                                    on_click=putar_gambar_tambah,
-                                    color=BLUE_SENSOR,
-                                    bgcolor="#E3F2FD",
-                                ),
-                            ],
-                            alignment="center",
-                            spacing=20,
-                        ),
                         preview_img,
                         ft.ElevatedButton(
                             "📁 Pilih Gambar",
@@ -1117,8 +1015,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             bgcolor="#E3F2FD",
                             color="blue",
                             on_click=buka_browser_tambah,
+                            width=220, 
                         ),
                     ],
+                    width=300, 
                     horizontal_alignment="center",
                     spacing=15,
                 ),
@@ -1138,7 +1038,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         ft.Row(
                             [kolom_kiri, kolom_kanan],
                             vertical_alignment="start",
-                            width=750,
+                            width=700,
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
                         ft.Container(height=10),
@@ -1147,14 +1047,14 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             "Simpan Data Alat",
                             GREEN_SENSOR,
                             simpan_alat_baru,
-                            width=750,
+                            width=700,
                             height=45,
                         ),
                     ],
                     horizontal_alignment="center",
                     spacing=10,
                 ),
-                width=850,
+                width=750,
                 height=450,
                 bgcolor="white",
                 padding=ft.padding.only(left=25, right=25, top=50, bottom=25),
