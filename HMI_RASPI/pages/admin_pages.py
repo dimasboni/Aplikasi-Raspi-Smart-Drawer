@@ -1060,6 +1060,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 padding=ft.padding.only(left=25, right=25, top=50, bottom=25),
                 border_radius=20,
                 shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
+                margin=ft.margin.only(top=-30)
             ),
         )
         page.overlay.append(dialog_tambah_browser)
@@ -1069,7 +1070,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     [form_card],
                     horizontal_alignment="center",
                     alignment="center",
-                    margin=ft.margin.only(top=-160),
+                    margin=ft.margin.only(top=-100),
                 ),
                 back_func=show_edit_tools_menu,
             )
