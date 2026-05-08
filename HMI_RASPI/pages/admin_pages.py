@@ -456,73 +456,92 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
         # ---- Buat daftar alat dengan pagination ----
         list_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
-        try:
-            with sqlite3.connect("smartdrawer.db") as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools",
+
+        def muat_daftar_alat(kata_kunci=""):
+            list_ui.controls.clear() 
+            try:
+                with sqlite3.connect("smartdrawer.db") as conn:
+                    cursor = conn.cursor()
+                    if kata_kunci:
+                        cursor.execute(
+                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools WHERE name LIKE ?",
+                            (f"%{kata_kunci}%",)
+                        )
+                    else:
+                        cursor.execute(
+                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools",
+                        )
+                    semua_alat = cursor.fetchall()
+            except Exception:
+                semua_alat = []
+
+            for baris in semua_alat:
+                nama_alat, topik, rfid_alat, gambar_alat = (
+                    baris[0],
+                    baris[1],
+                    baris[2],
+                    baris[3],
                 )
-                semua_alat = cursor.fetchall()
-        except Exception:
-            semua_alat = []
-
-        for baris in semua_alat:
-            nama_alat, topik, rfid_alat, gambar_alat = (
-                baris[0],
-                baris[1],
-                baris[2],
-                baris[3],
-            )
-            kotak_alat = ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Container(
-                            content=ft.Text("⚙️", size=16),
-                            bgcolor=BLUE_SENSOR,
-                            padding=10,
-                            border_radius=8,
-                        ),
-                        ft.Text(
-                            nama_alat,
-                            size=16,
-                            weight="bold",
-                            color=TEXT_COLOR,
-                            expand=True,
-                        ),
-                        ft.Text(topik, color="grey", size=14),
-                        ft.Container(
-                            content=ft.Text(
-                                "✏️ Edit", size=14, color="blue", weight="bold"
+                kotak_alat = ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Container(
+                                content=ft.Text("⚙️", size=16),
+                                bgcolor=BLUE_SENSOR,
+                                padding=10,
+                                border_radius=8,
                             ),
-                            padding=10,
-                            on_click=lambda _, n=nama_alat, r=rfid_alat, g=gambar_alat: buka_dialog_edit(
-                                n, r, g
+                            ft.Text(
+                                nama_alat,
+                                size=16,
+                                weight="bold",
+                                color=TEXT_COLOR,
+                                expand=True,
                             ),
-                            ink=True,
-                        ),
-                        ft.Container(
-                            content=ft.Text(
-                                "🗑️ Hapus", size=14, color="red", weight="bold"
+                            ft.Text(topik, color="grey", size=14),
+                            ft.Container(
+                                content=ft.Text(
+                                    "✏️ Edit", size=14, color="blue", weight="bold"
+                                ),
+                                padding=10,
+                                on_click=lambda _, n=nama_alat, r=rfid_alat, g=gambar_alat: buka_dialog_edit(
+                                    n, r, g
+                                ),
+                                ink=True,
                             ),
-                            padding=10,
-                            on_click=lambda _, n=nama_alat: konfirmasi_hapus(n),
-                            ink=True,
-                        ),
-                    ],
-                    alignment="center",
-                ),
-                bgcolor="#F9FAFB",
-                padding=10,
-                border_radius=10,
-                border=ft.border.all(1, "#E5E7EB"),
-                width=600,
-            )
-            list_ui.controls.append(kotak_alat)
-
+                            ft.Container(
+                                content=ft.Text(
+                                    "🗑️ Hapus", size=14, color="red", weight="bold"
+                                ),
+                                padding=10,
+                                on_click=lambda _, n=nama_alat: konfirmasi_hapus(n),
+                                ink=True,
+                            ),
+                        ],
+                        alignment="center",
+                    ),
+                    bgcolor="#F9FAFB",
+                    padding=10,
+                    border_radius=10,
+                    border=ft.border.all(1, "#E5E7EB"),
+                    width=600,
+                )
+                list_ui.controls.append(kotak_alat)
+            page.update()
+        
+        input_search = ft.TextField(
+            hint_text="Search Tool Here",
+            width=600,
+            border_color="blue",
+            border_radius=10,
+            color="black",
+            on_change=lambda e: muat_daftar_alat(e.control.value)
+        )
+        muat_daftar_alat()
         main_card = ft.Container(
             content=ft.Column(
                 [
-                    ft.Container(height=10),
+                    input_search,
                     ft.Container(content=list_ui, height=300),
                 ],
                 horizontal_alignment="center",
@@ -532,6 +551,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             padding=30,
             border_radius=20,
             shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=20)
         )
 
         tampilan = build_standard_layout(
