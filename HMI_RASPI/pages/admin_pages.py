@@ -943,6 +943,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 notif_text.value = "❌ Harap scan Tag RFID terlebih dahulu!"
                 page.update()
                 return
+            if  path_gambar_baru[0] == "tambah.png":
+                notif_text.value = "❌ Pilih gambar alat!"
+                page.update()
+                return
             if not dd_laci.value:
                 notif_text.value = "❌ Pilih lokasi laci!"
                 page.update()
