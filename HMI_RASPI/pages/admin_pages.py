@@ -1060,7 +1060,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 padding=ft.padding.only(left=25, right=25, top=50, bottom=25),
                 border_radius=20,
                 shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
-                margin=ft.margin.only(top=-30)
+                margin=ft.margin.only(top=-50)
             ),
         )
         page.overlay.append(dialog_tambah_browser)
