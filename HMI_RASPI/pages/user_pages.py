@@ -98,11 +98,59 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
         )
         for item in get_tools_from_db(2):
             grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
+        tombol_navigasi2=ft.Row([
+            create_filled_button(
+                "Laci 1", "#1F2937", lambda _: show_peminjaman_page1(), width=100
+            ),
+            create_filled_button(
+                "Laci 3", "#1F2937", lambda _: show_peminjaman_page3(), width=100
+            )
+        ])
         page.add(
             build_standard_layout(
                 grid, back_func=show_menu_user, title_text="Pilih Alat Laci 2",
+                action_button=tombol_navigasi2,
+            )
+        )
+
+    def show_peminjaman_page3(e=None):
+        page.clean()
+        grid = ft.GridView(
+            expand=True, runs_count=5, max_extent=180,
+            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10,
+        )
+        for item in get_tools_from_db(3):
+            grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
+
+        tombol_navigasi= ft.Row([
+            create_filled_button(
+                "Laci 2", "#1F2937", lambda _: show_peminjaman_page2(), width=100
+            ),
+            create_filled_button(
+                "Laci 4", "#1F2937", lambda _: show_peminjaman_page4(), width=100
+            )], spacing=10
+        )
+        
+        page.add(
+            build_standard_layout(
+                grid, back_func=show_menu_user, title_text="Pilih Alat Laci 3",
+                action_button=tombol_navigasi
+            )
+        )
+
+    def show_peminjaman_page4(e=None):
+        page.clean()
+        grid = ft.GridView(
+            expand=True, runs_count=5, max_extent=180,
+            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10,
+        )
+        for item in get_tools_from_db(4):
+            grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
+        page.add(
+            build_standard_layout(
+                grid, back_func=show_menu_user, title_text="Pilih Alat Laci 4",
                 action_button=create_filled_button(
-                    "Laci 1", "#1F2937", lambda _: show_peminjaman_page1(), width=100
+                    "Laci 3", "#1F2937", lambda _: show_peminjaman_page3(), width=100
                 ),
             )
         )
@@ -199,4 +247,6 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
     nav["show_menu_user"] = show_menu_user
     nav["show_peminjaman_page1"] = show_peminjaman_page1
     nav["show_peminjaman_page2"] = show_peminjaman_page2
+    nav["show_peminjaman_page3"] = show_peminjaman_page3
+    nav["show_peminjaman_page4"] = show_peminjaman_page4
     nav["show_list_pinjaman_user"] = show_list_pinjaman_user

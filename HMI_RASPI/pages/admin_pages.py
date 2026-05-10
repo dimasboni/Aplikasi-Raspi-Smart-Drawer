@@ -875,6 +875,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             options=[
                 ft.dropdown.Option("1", "Laci 1"),
                 ft.dropdown.Option("2", "Laci 2"),
+                ft.dropdown.Option("3", "Laci 3"),
+                ft.dropdown.Option("4", "Laci 4")
             ],
         )
 
