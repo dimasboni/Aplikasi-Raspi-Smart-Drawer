@@ -94,25 +94,25 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
 
         tombol_laci = ft.SegmentedButton(
             on_change=pilih_laci,
-            selected_icon=ft.Icon(ft.Icons.CHECK_SHARP),
+            selected_icon=ft.Icon(ft.Icons.CHECK_SHARP, size=18),
             selected=["1"],
             allow_multiple_selection=False,
             segments=[
                 ft.Segment(
                     value="1",
-                    label=ft.Text("Drawer 1"),
+                    label=ft.Text("Drawer 1", size=20, weight="bold"),
                 ),
                 ft.Segment(
                     value="2",
-                    label=ft.Text("Drawer 2"),
+                    label=ft.Text("Drawer 2", size=20, weight="bold"),
                 ),
                 ft.Segment(
                     value="3",
-                    label=ft.Text("Drawer 3")
+                    label=ft.Text("Drawer 3", size=20, weight="bold")
                 ),
                 ft.Segment(
                     value="4",
-                    label=ft.Text("Drawer 4")
+                    label=ft.Text("Drawer 4", size=20, weight="bold")
                 )
             ]
         )
