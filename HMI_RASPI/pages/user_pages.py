@@ -48,7 +48,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                                     "Peminjaman", "Pinjam alat", "pinjam.png", "#E8F5E9",
                                     lambda _: nav["show_rfid_page"](
                                         "Scan Login Peminjaman",
-                                        show_peminjaman_page1,
+                                        show_peminjaman_page,
                                         show_menu_user,
                                     ),
                                 ),
@@ -72,86 +72,65 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                 back_func=nav["show_home"],
             )
         )
-
-    def show_peminjaman_page1(e=None):
+    def show_peminjaman_page(e=None):
         page.clean()
         grid = ft.GridView(
             expand=True, runs_count=5, max_extent=180,
-            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10,
+            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10, 
         )
+        def pilih_laci(e): 
+            #Mengmabil nilai tombol yang baru saja dipilih 
+            #(e.control.selected) isinya berbentuk himpunan yang akan diambil isinya dan dijadikan integer
+            laci_terpilih = int(list(e.control.selected)[0])
+
+            #menghapus semua gridview lama
+            grid.controls.clear()
+
+            #tarik data dari database 
+            for item in get_tools_from_db(laci_terpilih):
+                grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
+
+            page.update()
+
+        tombol_laci = ft.SegmentedButton(
+            on_change=pilih_laci,
+            selected_icon=ft.Icon(ft.Icons.CHECK_SHARP),
+            selected=["1"],
+            allow_multiple_selection=False,
+            segments=[
+                ft.Segment(
+                    value="1",
+                    label=ft.Text("Drawer 1"),
+                ),
+                ft.Segment(
+                    value="2",
+                    label=ft.Text("Drawer 2"),
+                ),
+                ft.Segment(
+                    value="3",
+                    label=ft.Text("Drawer 3")
+                ),
+                ft.Segment(
+                    value="4",
+                    label=ft.Text("Drawer 4")
+                )
+            ]
+        )
+
         for item in get_tools_from_db(1):
             grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
+
         page.add(
             build_standard_layout(
-                grid, back_func=show_menu_user, title_text="Pilih Alat Laci 1",
-                action_button=create_filled_button(
-                    "Laci 2", "#1F2937", lambda _: show_peminjaman_page2(), width=100
+                title_text="Choose Drawer & Tool",
+                content_control=ft.Column([
+                    tombol_laci, 
+                    grid
+                ],
+                horizontal_alignment="center",
+                spacing=20
                 ),
-            )
-        )
-
-    def show_peminjaman_page2(e=None):
-        page.clean()
-        grid = ft.GridView(
-            expand=True, runs_count=5, max_extent=180,
-            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10,
-        )
-        for item in get_tools_from_db(2):
-            grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
-        tombol_navigasi2=ft.Row([
-            create_filled_button(
-                "Laci 1", "#1F2937", lambda _: show_peminjaman_page1(), width=100
-            ),
-            create_filled_button(
-                "Laci 3", "#1F2937", lambda _: show_peminjaman_page3(), width=100
-            )
-        ])
-        page.add(
-            build_standard_layout(
-                grid, back_func=show_menu_user, title_text="Pilih Alat Laci 2",
-                action_button=tombol_navigasi2,
-            )
-        )
-
-    def show_peminjaman_page3(e=None):
-        page.clean()
-        grid = ft.GridView(
-            expand=True, runs_count=5, max_extent=180,
-            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10,
-        )
-        for item in get_tools_from_db(3):
-            grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
-
-        tombol_navigasi= ft.Row([
-            create_filled_button(
-                "Laci 2", "#1F2937", lambda _: show_peminjaman_page2(), width=100
-            ),
-            create_filled_button(
-                "Laci 4", "#1F2937", lambda _: show_peminjaman_page4(), width=100
-            )], spacing=10
-        )
-        
-        page.add(
-            build_standard_layout(
-                grid, back_func=show_menu_user, title_text="Pilih Alat Laci 3",
-                action_button=tombol_navigasi
-            )
-        )
-
-    def show_peminjaman_page4(e=None):
-        page.clean()
-        grid = ft.GridView(
-            expand=True, runs_count=5, max_extent=180,
-            child_aspect_ratio=0.85, spacing=20, run_spacing=20, padding=10,
-        )
-        for item in get_tools_from_db(4):
-            grid.controls.append(create_tool_grid_item(item, nav["show_position_selection"]))
-        page.add(
-            build_standard_layout(
-                grid, back_func=show_menu_user, title_text="Pilih Alat Laci 4",
-                action_button=create_filled_button(
-                    "Laci 3", "#1F2937", lambda _: show_peminjaman_page3(), width=100
-                ),
+            back_func=show_menu_user,
             )
         )
 
@@ -245,8 +224,5 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
     nav["show_menu_user"] = show_menu_user
-    nav["show_peminjaman_page1"] = show_peminjaman_page1
-    nav["show_peminjaman_page2"] = show_peminjaman_page2
-    nav["show_peminjaman_page3"] = show_peminjaman_page3
-    nav["show_peminjaman_page4"] = show_peminjaman_page4
+    nav["show_peminjaman_page"] = show_peminjaman_page
     nav["show_list_pinjaman_user"] = show_list_pinjaman_user
