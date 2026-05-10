@@ -128,7 +128,9 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                     grid
                 ],
                 horizontal_alignment="center",
-                spacing=20
+                spacing=20,
+                expand=True,
+                #scroll=ft.ScrollMode.ALWAYS,
                 ),
             back_func=show_menu_user,
             )

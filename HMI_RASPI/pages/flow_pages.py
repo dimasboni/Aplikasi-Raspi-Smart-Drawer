@@ -635,7 +635,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     horizontal_alignment="center",
                     alignment="center",
                 ),
-                back_func=nav["show_peminjaman_page1"],
+                back_func=nav["show_peminjaman_page"],
             )
         )
 
