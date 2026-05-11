@@ -123,6 +123,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
         page.add(
             build_standard_layout(
                 title_text="Choose Drawer & Tool",
+                title_size=35,
                 content_control=ft.Column([
                     tombol_laci, 
                     grid

@@ -121,7 +121,7 @@ def create_tool_grid_item(item_data, on_click):
 
 
 def build_standard_layout(
-    content_control, back_func=None, title_text="", action_button=None
+    content_control, back_func=None, title_text="", action_button=None, title_size=50,
 ):
     """Mencetak Layout/Rangka Atap dan Halaman (Punya tombol back/kembali di pojok)"""
     header_row = ft.Row(
@@ -142,7 +142,7 @@ def build_standard_layout(
             ft.Container(
                 content=ft.Text(
                     title_text,
-                    size=50,
+                    size=title_size,
                     weight="bold",
                     color=TEXT_COLOR,
                     text_align="center",
