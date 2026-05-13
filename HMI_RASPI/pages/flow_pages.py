@@ -31,7 +31,7 @@ from config import (
     BLUE_SENSOR,
     GREEN_SENSOR,
 )
-from db_manager import simpan_log, simpan_log_pengembalian, get_borrowed_tools
+from db_manager import simpan_log, simpan_log_pengembalian, get_borrowed_tools, get_tool_positions
 from sensor_manager import status_sensor_realtime
 from ui_komponen import create_filled_button, build_standard_layout
 
@@ -610,30 +610,47 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     def show_position_selection(name, data):
         page.clean()
+        laci_saat_ini = data.get("page", 1)
+
+        posisi_aktif =  get_tool_positions(name, laci_saat_ini)
+
         pos_grid = ft.GridView(expand=True, max_extent=70, spacing=10)
-        for i in range(1, 2):
-            pos_grid.controls.append(
-                ft.Container(
-                    content=ft.Text(str(i), weight="bold", color=TEXT_COLOR),
-                    alignment=ft.Alignment(0, 0),
+
+        for i in range(16):
+            kode_pin = f"P{str(i).zfill(2)}"
+            is_available = kode_pin in posisi_aktif
+
+            if is_available: 
+                #kotak aktif jika ada bendanya 
+                kotak = ft.Container(
+                    content=ft.Text(str(i+1), weight="bold", color=TEXT_COLOR),
+                    alignment=ft.Alignment(0,0),
                     bgcolor="white",
-                    border=ft.border.all(2, "#4CAF50"),
+                    border=ft.border.all(2, GREEN_SENSOR),
                     border_radius=10,
-                    on_click=lambda e, idx=i: show_visual_sensor_flow(name, idx),
+                    ink=True,
+                    on_click= lambda e, p=kode_pin: show_visual_sensor_flow(name, p),
                 )
-            )
+            else: 
+                #Kotak abu-abu jika bukan barangnya 
+                kotak = ft.Container(
+                    content=ft.Text(str(i + 1), weight="bold", color="grey"),
+                    alignment=ft.Alignment(0,0),
+                    bgcolor="#E5E7EB",
+                    border=ft.border.all(2, "#D1D5DB"),
+                    border_radius=10,
+                )
+            pos_grid.controls.append(kotak)
+
         page.add(
             build_standard_layout(
                 ft.Column(
                     [
-                        ft.Text(
-                            f"Posisi {name}", size=32, weight="bold", color=TEXT_COLOR
-                        ),
+                        ft.Text(f"Position for {name}", size=32, weight="bold", color=TEXT_COLOR),
                         ft.Container(height=20),
                         ft.Container(content=pos_grid, height=300, width=600),
                     ],
-                    horizontal_alignment="center",
-                    alignment="center",
+                    horizontal_alignment="center", alignment="center",
                 ),
                 back_func=nav["show_peminjaman_page"],
             )

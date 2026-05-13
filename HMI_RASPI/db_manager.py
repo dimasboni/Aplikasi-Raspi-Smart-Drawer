@@ -22,15 +22,15 @@ def update_stok_otomatis(tool_name, jumlah_stok):
         print(f"Error update stok sensor: {e}")
 
 def get_tools_from_db(page_number):
-    """Mengambil daftar alat berdasarkan halaman (Laci 1 / Laci 2)."""
+    """Mengambil daftar alat berdasarkan halaman (Laci) dan menggabungkan alat yang sama."""
     tools_list = []
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT name, img, total, rot FROM tools WHERE page = ?", (page_number,))
+            cursor.execute("SELECT name, img, SUM(total), rot FROM tools WHERE page = ? GROUP BY name", (page_number,))
             rows = cursor.fetchall()
             for row in rows:
-                tools_list.append({"name": row[0], "img": row[1], "total": row[2], "rot": row[3]})
+                tools_list.append({"name": row[0], "img": row[1], "total": row[2], "rot": row[3], "page": page_number})
     except Exception as e: 
         print(f"Error get tools: {e}")
     return tools_list
@@ -90,3 +90,18 @@ def simpan_log_pengembalian(user_name, tool_name):
         kirim_ke_server_niko(user_name, tool_name, "KEMBALI")
     except Exception as e:
         print(f"Error simpan log pengembalian: {e}")
+
+
+def get_tool_positions(tool_name, page_number): 
+    # Mencari daftar koordinat/pin untuk alat tertentu di laci tertentu
+    positions = []
+    try: 
+        with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
+            cursor = conn.cursor()
+            cursor.execute("SELECT mqtt_topic FROM tools WHERE name = ? AND page = ?", (tool_name, page_number))
+            rows = cursor.fetchall()
+            for row in rows: 
+                positions.append(row[0])
+    except Exception as e: 
+        print(f"Error get positions:{e}")
+    return positions

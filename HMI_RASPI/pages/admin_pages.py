@@ -251,21 +251,13 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
                 for f in files:
                     full_path = os.path.join(current_path[0], f)
-                    thumb_name = f"_thumb_{f}"
-                    thumb_path = os.path.join("assets", thumb_name)
-                    try:
-                        pil_img = PILImage.open(full_path)
-                        pil_img.thumbnail((35, 35))
-                        pil_img.save(thumb_path, format="PNG")
-                    except Exception:
-                        thumb_name = None
 
-                    if thumb_name:
-                        thumb = ft.Image(
-                            src=f"/{thumb_name}", width=35, height=35, fit="contain"
+                    try: 
+                        thumb=ft.Image(
+                            src=full_path, width=35, height=35, fit="contain"
                         )
-                    else:
-                        thumb = ft.Icon("image", color="#10B981")
+                    except Exception:
+                        thumb = ft.Icon(ft.icons.BUILD, color="#10B981")
 
                     file_list_view.controls.append(
                         ft.Row(
@@ -774,21 +766,13 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     )
                 for f in files:
                     full_path = os.path.join(current_path[0], f)
-                    thumb_name = f"_thumb_{f}"
-                    thumb_path = os.path.join("assets", thumb_name)
-                    try:
-                        pil_img = PILImage.open(full_path)
-                        pil_img.thumbnail((35, 35))
-                        pil_img.save(thumb_path, format="PNG")
-                    except Exception:
-                        thumb_name = None
 
-                    if thumb_name:
-                        thumb = ft.Image(
-                            src=f"/{thumb_name}", width=35, height=35, fit="contain"
+                    try: 
+                        thumb=ft.Image(
+                            src=full_path, width=35, height=35, fit="contain"
                         )
-                    else:
-                        thumb = ft.Text("🖼️", size=16)
+                    except Exception:
+                        thumb = ft.Icon(ft.icons.BUILD, color="#10B981")
 
                     file_list_view.controls.append(
                         ft.Row(
@@ -886,7 +870,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             border_color=BLUE_SENSOR,
             border_radius=10,
             color=TEXT_COLOR,
-            options=[ft.dropdown.Option(f"P{str(i).zfill(2)}") for i in range(16)],
+            options=[ft.dropdown.Option(f"P{str(i).zfill(2)}") for i in range(18)],
         )
 
         notif_text = ft.Text("", color="red", size=14, weight="bold")
@@ -999,11 +983,11 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
                 async def konfirmasi_simpan():
                     await asyncio.sleep(1.0)
-                    show_edit_tools_menu()
+                    show_add_tool_page()
 
                 page.run_task(konfirmasi_simpan)
             except sqlite3.IntegrityError:
-                notif_text.value = "❌ Nama alat sudah ada di database!"
+                notif_text.value = "❌ RFID Tag already in use!"
                 page.update()
             except Exception as err:
                 notif_text.value = f"❌ Gagal menyimpan: {err}"
