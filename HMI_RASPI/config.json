@@ -1,5 +1,11 @@
 {    "mqqt_broker": "localhost",
      "mqqt_port": 1883,
      "db_host": "192.168.1.5",
-     "cabinet_name": "Smart Drawer-01"
+     "cabinet_name": "Smart Drawer-01",
+     "drawer_capacity":{
+        "1": 20,
+        "2": 18,
+        "3": 16,
+        "4": 16
+     }
 }

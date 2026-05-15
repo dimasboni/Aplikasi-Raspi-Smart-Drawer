@@ -25,6 +25,7 @@ import sqlite3
 import flet as ft
 
 from config import (
+    DRAWER_CAPACITY,
     TEXT_COLOR,
     SUB_TEXT_COLOR,
     SHADOW_COLOR,
@@ -612,18 +613,21 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         laci_saat_ini = data.get("page", 1)
 
-        posisi_aktif =  get_tool_positions(name, laci_saat_ini)
+        #ambil jumlah slot dari config.json
+        jumlah_slot = DRAWER_CAPACITY.get(laci_saat_ini, 16)
 
+        posisi_aktif =  get_tool_positions(name, laci_saat_ini)
         pos_grid = ft.GridView(expand=True, max_extent=70, spacing=10)
 
-        for i in range(16):
+        #Looping dinamis mulai dari 1 sampai jumlah_slot 
+        for i in range(1, jumlah_slot + 1):
             kode_pin = f"P{str(i).zfill(2)}"
             is_available = kode_pin in posisi_aktif
 
             if is_available: 
                 #kotak aktif jika ada bendanya 
                 kotak = ft.Container(
-                    content=ft.Text(str(i+1), weight="bold", color=TEXT_COLOR),
+                    content=ft.Text(str(i), weight="bold", color=TEXT_COLOR),
                     alignment=ft.Alignment(0,0),
                     bgcolor="white",
                     border=ft.border.all(2, GREEN_SENSOR),
@@ -634,7 +638,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             else: 
                 #Kotak abu-abu jika bukan barangnya 
                 kotak = ft.Container(
-                    content=ft.Text(str(i + 1), weight="bold", color="grey"),
+                    content=ft.Text(str(i), weight="bold", color="grey"),
                     alignment=ft.Alignment(0,0),
                     bgcolor="#E5E7EB",
                     border=ft.border.all(2, "#D1D5DB"),

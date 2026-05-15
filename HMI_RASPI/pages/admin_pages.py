@@ -33,6 +33,7 @@ from config import (
     SHADOW_COLOR,
     BLUE_SENSOR,
     GREEN_SENSOR,
+    DRAWER_CAPACITY
 )
 from db_manager import simpan_log, simpan_log_pengembalian
 from ui_komponen import (
@@ -850,29 +851,53 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             color=TEXT_COLOR,
         )
 
-        dd_laci = ft.Dropdown(
-            label="Lokasi Laci (page)",
-            width=350,
-            border_color=BLUE_SENSOR,
-            border_radius=10,
-            color=TEXT_COLOR,
-            options=[
-                ft.dropdown.Option("1", "Laci 1"),
-                ft.dropdown.Option("2", "Laci 2"),
-                ft.dropdown.Option("3", "Laci 3"),
-                ft.dropdown.Option("4", "Laci 4")
-            ],
-        )
+        
 
+        # 1. Pancingan Awal: Langsung isi PIN sesuai Laci 1 agar Dropdown tidak "mati"
+        default_slot = DRAWER_CAPACITY.get(1, 16)
+        opsi_awal = [ft.dropdown.Option(key=f"P{str(i).zfill(2)}", text=f"P{str(i).zfill(2)}") for i in range(1, default_slot + 1)]
+
+        # 2. Buat Dropdown PIN (Sudah berisi opsi Laci 1)
         dd_pin = ft.Dropdown(
             label="Posisi Pin Sensor (mqtt_topic)",
             width=350,
             border_color=BLUE_SENSOR,
             border_radius=10,
             color=TEXT_COLOR,
-            options=[ft.dropdown.Option(f"P{str(i).zfill(2)}") for i in range(18)],
+            options=opsi_awal, 
         )
 
+
+        # 4. Fungsi Pemikirnya
+        def update_pin_options(e):
+            if not e.control.selected:
+                return
+                
+            laci_terpilih = int(list(e.control.selected)[0])
+            jumlah_slot = DRAWER_CAPACITY.get(laci_terpilih, 16)
+
+            dd_pin.options.clear()
+
+            for i in range(1, jumlah_slot + 1):
+                kode = f"P{str(i).zfill(2)}"
+                dd_pin.options.append(ft.dropdown.Option(key=kode, text=kode))
+
+            # TIMPA opsi lama dengan opsi baru
+            dd_pin.value = None
+            dd_pin.update()
+
+        dd_laci = ft.SegmentedButton(
+            on_change=update_pin_options, 
+            selected_icon=ft.Icon(ft.Icons.CHECK_SHARP),
+            selected=["1"],
+            allow_multiple_selection=False, 
+            segments=[
+                ft.Segment(value="1", label=ft.Text("Drawer 1")),
+                ft.Segment(value="2", label=ft.Text("Drawer 2")),
+                ft.Segment(value="3", label=ft.Text("Drawer 3")),
+                ft.Segment(value="4", label=ft.Text("Drawer 4")),
+            ]
+        )
         notif_text = ft.Text("", color="red", size=14, weight="bold")
 
         # Pop up scan RFID
@@ -953,7 +978,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 notif_text.value = "❌ Pilih gambar alat!"
                 page.update()
                 return
-            if not dd_laci.value:
+            if not dd_laci.selected:
                 notif_text.value = "❌ Pilih lokasi laci!"
                 page.update()
                 return
@@ -971,7 +996,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             input_rfid.value.strip(),
                             path_gambar_baru[0],
                             1,
-                            int(dd_laci.value),
+                            int((list(dd_laci.selected)[0])),
                             dd_pin.value,
                             0,
                         ),

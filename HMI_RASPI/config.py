@@ -35,3 +35,13 @@ def load_settings():
 
 #eksekusi sekali agar variabel load settings bisa digunakan 
 settings = load_settings()
+
+# Mengambil Kapasitas Laci dari Json 
+RAW_CAPACITY = settings.get("drawer_capacity", {})
+
+#m Konversi key teks "1" menjadi integer 1 
+DRAWER_CAPACITY = {int(k): v for k, v in RAW_CAPACITY.items()}
+
+#jika json belum ada isinya pakai default 16
+if not DRAWER_CAPACITY: 
+    DRAWER_CAPACITY = {1: 16, 2: 18, 3: 16, 4: 16}
