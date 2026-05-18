@@ -146,12 +146,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW VISUAL SENSOR KEMBALI (tunggu sensor saat taruh)
     # ------------------------------------------------------------------
-    def show_visual_sensor_kembali(scanned_tools, index):
-        if index >= len(scanned_tools):
-            show_all_done_kembali()
-            return
+    def show_visual_sensor_kembali(scanned_tools, index, pin_terpilih):
         page.clean()
-        current_tool = scanned_tools[index]
+        current_tool = scanned_tools[index]["name"]
         indicator = ft.Container(
             content=ft.Text("📥", size=50),
             width=120,
@@ -172,7 +169,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             animate=300,
         )
         status_txt = ft.Text(
-            f"MENUNGGU SENSOR IR...\nSilakan taruh {current_tool} ke posisinya ({index+1}/{len(scanned_tools)})",
+            f"MENUNGGU SENSOR IR...\nSilakan taruh {current_tool} ke posisi {pin_terpilih}\n({index+1}/{len(scanned_tools)})",
             size=18,
             color="black",
             weight="bold",
@@ -180,16 +177,18 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
         async def pantau_sensor_ditaruh():
-            while status_sensor_realtime.get(current_tool, 0) == 0:
+            laci_tujuan = scanned_tools[index]["laci"]
+            kunci_unik = f"{laci_tujuan}_{pin_terpilih}"
+            while status_sensor_realtime.get(kunci_unik, 0) == 0:
                 await asyncio.sleep(0.5)
             indicator.bgcolor = GREEN_SENSOR
             sensor_box.bgcolor = "#E8F5E9"
-            status_txt.value = f"{current_tool} Berhasil Ditaruh!"
+            status_txt.value = f"{current_tool} Berhasil Ditaruh di posisi {pin_terpilih}!"
             status_txt.color = GREEN_SENSOR
             page.update()
             simpan_log_pengembalian(session_data["user_now"], current_tool)
             await asyncio.sleep(2.0)
-            show_visual_sensor_kembali(scanned_tools, index + 1)
+            show_kembali_position_selection(scanned_tools, index + 1)
 
         page.add(
             build_standard_layout(
@@ -201,19 +200,86 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             )
         )
         page.run_task(pantau_sensor_ditaruh)
+    #==========================================================================
+    # show_kembali_position_selection 
+    #==========================================================================
 
+    def show_kembali_position_selection(scanned_tools, index):
+        if index >= len(scanned_tools):
+            show_all_done_kembali()
+            return
+        page.clean()
+
+        current_item = scanned_tools[index]
+        tool_name = current_item["name"]
+        pin_tujuan= current_item["pin"]
+        laci_tujuan = current_item["laci"]
+
+        jumlah_slot = DRAWER_CAPACITY.get(laci_tujuan, 16)
+        pos_grid = ft.GridView(expand=True, max_extent=70, spacing=10)
+
+        for i in range(1, jumlah_slot + 1):
+            kode_pin = f"P{str(i).zfill(2)}"
+
+            if kode_pin == pin_tujuan: 
+                kotak=ft.Container(
+                    content=ft.Text(str(i), weight="bold", color="white"),
+                    alignment=ft.Alignment(0, 0),
+                    bgcolor=GREEN_SENSOR,
+                    border_radius=10,
+                    ink=True,
+                    on_click=lambda e, p=kode_pin: show_visual_sensor_kembali(scanned_tools, index, p),
+                )
+            else: 
+                kotak = ft.Container(
+                    content= ft.Text(str(i), weight="bold", color="grey"),
+                    alignment=ft.Alignment(0, 0),
+                    bgcolor="#E5E7EB",
+                    border=ft.border.all(2, "#D1D5DB"),
+                    border_radius=10,
+                )
+            pos_grid.controls.append(kotak)
+        
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [
+                        ft.Text(f"Kembalikan {tool_name} ke posisi aslinya", size=28, weight="bold", color=TEXT_COLOR),
+                        ft.Text(f"Open Drawer {laci_tujuan} taruh di posisi {pin_tujuan}", size=20, weight="bold", color=SUB_TEXT_COLOR),
+                        ft.Container(height=20),
+                        ft.Container(content=pos_grid, height=300, width=600),
+                    ],
+                    horizontal_alignment="center", alignment="center",
+                ),
+            )
+        )
+            
     # ------------------------------------------------------------------
     # SHOW KONFIRMASI KEMBALI
     # ------------------------------------------------------------------
     def show_konfirmasi_kembali(scanned_tools):
         page.clean()
         list_ui = ft.Column(
-            [
-                ft.Text(f"📦 {t}", size=18, color="black", weight="bold")
-                for t in scanned_tools
-            ],
+            spacing=10,
             scroll=ft.ScrollMode.AUTO,
         )
+
+        for idx, item in enumerate(scanned_tools):
+            list_ui.controls.append(
+                ft.Container(
+                    content=ft.Row([
+                        #Menampilkan nama alat
+                        ft.Text(f"{idx+1}. {item['name']}", size=18, weight="bold", color="black"),
+                        #Menampilkan Rumah aslinya 
+                        ft.Text(f"Kembali ke: laci {item['laci']} - {item['pin']}", size=14, color=GREEN_SENSOR, weight="bold")
+                    ], alignment="spaceBetween"),
+                    padding=15,
+                    bgcolor="#F9FAFB",
+                    border_radius=10,
+                    border=ft.border.all(1, "#E5E7EB"),
+                )
+            )
+
         content = ft.Column(
             [
                 ft.Text(
@@ -223,12 +289,12 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     color="black",
                 ),
                 ft.Container(height=10),
-                ft.Container(content=list_ui, height=200),
+                ft.Container(content=list_ui, height=200, width=500),
                 ft.Container(height=20),
                 create_filled_button(
                     "Lanjut Buka Laci",
                     "green",
-                    lambda _: show_visual_sensor_kembali(scanned_tools, 0),
+                    lambda _: show_kembali_position_selection(scanned_tools, 0),
                     width=400,
                     height=50,
                 ),
@@ -307,32 +373,39 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             btn_confirm.disabled = len(scanned_items) == 0
             page.update()
 
-        def proses_scan(e):
-            uid_tag = str(e.control.value).strip()
-            e.control.value = ""
+        def proses_scan(e, simu_uid=None):
+            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip() 
+            input_tag.value = ""
             page.update()
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                     res = (
                         conn.cursor()
                         .execute(
-                            "SELECT name FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?",
+                            "SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?",
                             (uid_tag,),
                         )
                         .fetchone()
                     )
                 if res:
+                    tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
                     if res[0] in borrowed_tools:
-                        if res[0] not in scanned_items:
-                            scanned_items.append(res[0])
-                            status_text.value = f"Berhasil: {res[0]}"
-                            status_text.color = "#10B981"
-                            update_ui()
+                        if tool_name in borrowed_tools:
+                            sudah_ada = any(item["pin"] == tool_pin for item in scanned_items)
+                            if not sudah_ada:
+                                scanned_items.append({
+                                    "name": tool_name,
+                                    "pin": tool_pin, 
+                                    "laci": tool_laci
+                                })
+                                status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
+                                status_text.color = "#10B981"
+                                update_ui()
                         else:
-                            status_text.value = f"Sudah di-scan: {res[0]}"
+                            status_text.value = f"Sudah di-scan: {tool_name}"
                             status_text.color = "orange"
                     else:
-                        status_text.value = f"Bukan pinjaman Anda: {res[0]}"
+                        status_text.value = f"Bukan pinjaman Anda: {tool_name}"
                         status_text.color = "red"
                 else:
                     status_text.value = "Tag Tidak Dikenal!"
@@ -361,8 +434,14 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                                 color=TEXT_COLOR,
                             ),
                             status_text,
+                            create_filled_button(
+                                "Simulasi Scan Tag (2596586725)",
+                                "#F59E0B",
+                                lambda coba: proses_scan(coba, simu_uid="2596586725"),
+                                height=35
+                            )
                         ],
-                        spacing=2,
+                        spacing=5,
                     ),
                 ],
                 alignment="center",
@@ -399,9 +478,20 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
     # ------------------------------------------------------------------
-    def show_scan_tag_alat(tool_name):
+    def show_scan_tag_alat(tool_name, pin_terpilih):
         page.clean()
         state = {"aktif": True}
+
+        #mengambil UID asli dari Db untuk modal tombol simulasi 
+        uid_simulasi_benar = ""
+        try: 
+            with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                res = conn.cursor().execute ("SELECT rfid_tag_uid FROM tools WHERE TRIM(name) = ?", (tool_name.strip(),)).fetchone()
+                if res: 
+                    uid_simulasi_benar = str(res[0])
+                print(f"🔍 DEBUG CARI UID: Alat '{tool_name}' -> Ditemukan UID: '{uid_simulasi_benar}'")
+        except: 
+            pass 
         input_tag = ft.TextField(
             autofocus=True,
             width=1,
@@ -422,7 +512,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         async def proses_scan_tag(e, simu_uid=None):
             if not state["aktif"]:
                 return
-            uid_tag = simu_uid if simu_uid else str(e.control.value).strip()
+            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
+            print(f"🚀 DEBUG UID SCAN: Alat = {tool_name} | UID = '{uid_tag}' | Pin = {pin_terpilih}")
             input_tag.disabled = True
             visual_card.border = ft.border.all(3, "#F59E0B")
             status_text.value = "Mencocokkan Data..."
@@ -433,8 +524,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     tag_data = (
                         conn.cursor()
                         .execute(
-                            "SELECT name FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?",
-                            (uid_tag,),
+                            "SELECT name FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ? AND mqtt_topic = ?",
+                            (uid_tag, pin_terpilih),
                         )
                         .fetchone()
                     )
@@ -458,9 +549,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         visual_card.border = ft.border.all(2, BLUE_SENSOR)
                         status_text.value = f"Scan Tag RFID pada {tool_name}"
                         status_text.color = SUB_TEXT_COLOR
-                        e.control.value = ""
+                        input_tag.value = ""
                         input_tag.disabled = False
-                        e.control.focus()
+                        input_tag.focus()
                         page.update()
                 else:
                     visual_card.border = ft.border.all(3, "red")
@@ -471,12 +562,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     visual_card.border = ft.border.all(2, BLUE_SENSOR)
                     status_text.value = f"Scan Tag RFID pada {tool_name}"
                     status_text.color = SUB_TEXT_COLOR
-                    e.control.value = ""
+                    input_tag.value = ""
                     input_tag.disabled = False
-                    e.control.focus()
+                    input_tag.focus()
                     page.update()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"🔥 ERROR FATAL SAAT SCAN: {e}")
+                input_tag.disabled = False
+                input_tag.focus()
+                page.update()
 
         input_tag.on_submit = proses_scan_tag
 
@@ -520,7 +614,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                                 "Simulasi Scan Tag",
                                 "green",
                                 lambda coba_aja: page.run_task(
-                                    proses_scan_tag, coba_aja, simu_uid="1234556",
+                                    proses_scan_tag, coba_aja, simu_uid=uid_simulasi_benar,
                                 ),
                             )
                         ],
@@ -585,7 +679,18 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
         async def pantau_sensor_diambil():
-            while status_sensor_realtime.get(tool_name, 1) == 1:
+            laci_alat = 1
+            try: 
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
+                    res_laci = conn.execute("SELECT page FROM tools WHERE name = ? AND mqtt_topic = ?", (tool_name, slot_num)).fetchone()
+                    if res_laci: 
+                        laci_alat = res_laci[0]
+            except Exception: 
+                pass
+
+            kunci_unik = f"{laci_alat}_{slot_num}"
+            
+            while status_sensor_realtime.get(kunci_unik, 1) == 1:
                 await asyncio.sleep(0.5)
             indicator_circle.bgcolor = GREEN_SENSOR
             sensor_box.bgcolor = "#E8F5E9"
@@ -593,7 +698,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             status_txt.color = GREEN_SENSOR
             page.update()
             await asyncio.sleep(1.5)
-            show_scan_tag_alat(tool_name)
+            show_scan_tag_alat(tool_name, slot_num)
 
         page.add(
             build_standard_layout(
@@ -718,12 +823,28 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 if user_data:
                     nama_user = user_data[0]
                     session_data["user_now"] = nama_user
+
+                    if tipe_akses.lower() == "user":
+                        from db_manager import cek_koin_user
+                        sisa_koin = cek_koin_user(nama_user)
+
+                        if sisa_koin <= 0:
+                            visual_card.border = ft.border.all(3, "red")
+                            status_text.value = f"Akses ditolak! \nKoin Anda Habis (Sisa: 0)"
+                            status_text.color = "red"
+                            page.update()
+                            await asyncio.sleep(3.0)
+                            keluar_halaman(back_destination_func)
+                            return # stop proses disini 
                     visual_card.border = ft.border.all(3, GREEN_SENSOR)
-                    status_text.value = f"Akses Diberikan!\nHalo {nama_user}"
+
+                    status_text.value = f"Akses diberikan \nHalo {nama_user} (Koin: {sisa_koin})" if tipe_akses.lower() == "user" else f"Akses diberikan! \Halo {nama_user}"
+
                     status_text.color = GREEN_SENSOR
                     page.update()
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(1.0)
                     keluar_halaman(next_destination_func)
+                    
                 else:
                     visual_card.border = ft.border.all(3, "red")
                     status_text.value = "Akses Ditolak!\nKartu tidak sesuai hak akses."

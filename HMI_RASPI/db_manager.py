@@ -4,19 +4,48 @@ import threading
 from config import settings 
 
 # --- KONFIGURASI API NIKO ---
-ip_server_niko = settings.get("db_host", "10.195.71.208")
-API_URL_NIKO =f"http://{ip_server_niko}/smartdrawer/api_terima.php"
+#ip_server_niko = settings.get("db_host", "10.71.116.208")
+#API_URL_NIKO =f"http://{ip_server_niko}/smartdrawer/api_terima.php"
 
+IP_LARAVEL = "127.0.0.1:8000"
+URL_CEK_KOIN = f"http://{IP_LARAVEL}/api/cek-koin"
+URL_LOG_PINJAM = f"http://{IP_LARAVEL}/api/log-pinjam"
+
+import urllib.parse # <-- Pastikan tambahkan ini di baris paling atas (di bawah import sqlite3)
+
+def cek_koin_user(username):
+    """Menembak API Laravel untuk mengecek sisa koin user"""
+    try:
+        # 1. Bersihkan spasi di belakang nama (jika ada) dan ubah spasi jadi format web (%20)
+        safe_username = urllib.parse.quote(username.strip())
+        target_url = f"{URL_CEK_KOIN}/{safe_username}"
+        
+        print(f"🚀 DEBUG API: Menembak ke -> {target_url}")
+        
+        # 2. Kirim ke server Niko
+        response = requests.get(target_url, timeout=3)
+        
+        # 3. Print apa jawaban server Niko ke terminal!
+        print(f"📡 DEBUG API: Status Jawaban Niko = {response.status_code}")
+        print(f"📦 DEBUG API: Isi Pesan Niko = {response.text}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("koin", 0)
+    except Exception as e:
+        print(f"❌ Error API Cek Koin: {e}")
+        
+    return 0 # Tolak akses jika server mati atau error
 # ==============================================================================
 # FUNGSI-FUNGSI DATABASE (SQLITE3)
 # Semua transaksi database kumpul di file ini!
 # ==============================================================================
 
-def update_stok_otomatis(tool_name, jumlah_stok):
-    """Mengupdate stok alat di tabel tools saat sensor mendeteksi perubahan."""
+def update_stok_otomatis(topik_pin, nomer_laci, jumlah_stok):
+    """Mengupdate stok satu alat spesifik di tabel tools berdasarkan posisi pin saat sensor mendeteksi perubahan."""
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-            conn.execute("UPDATE tools SET total = ? WHERE name = ?", (jumlah_stok, tool_name))
+            conn.execute("UPDATE tools SET total = ? WHERE mqtt_topic = ? AND page =?", (jumlah_stok, topik_pin, nomer_laci))
             conn.commit()
     except Exception as e:
         print(f"Error update stok sensor: {e}")
@@ -64,7 +93,7 @@ def kirim_ke_server_niko(user_name, tool_name, status):
     def tugas_kirim():
         paket_data = {"nama_user": user_name, "nama_alat": tool_name, "status": status}
         try:
-            requests.post(API_URL_NIKO, json=paket_data, timeout=3)
+            requests.post(URL_LOG_PINJAM, json=paket_data, timeout=3)
         except Exception: 
             pass # Abaikan jika server error/mati
     

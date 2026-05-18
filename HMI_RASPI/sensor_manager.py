@@ -14,33 +14,51 @@ MQTT_PORT = settings.get("mqqt_port", 1883)
 
 def on_mqtt_connect(client, userdata, flags, rc):
     print(f"✅ Berhasil terhubung ke MQTT Broker! Status Code: {rc}")
-    client.subscribe("laci/#") 
+    client.subscribe("#") 
     print("🎧 Flet Standby mendengarkan Wemos...")
 
 def on_mqtt_message(client, userdata, msg):
-    topik = msg.topic
+    topik_asli = msg.topic
     pesan = msg.payload.decode("utf-8")
-    print(f"🚨 [RADAR SENSOR] Masuk! Topik: '{topik}' | Pesan: '{pesan}'")
+    print(f"🚨 [RADAR SENSOR] Masuk! Topik: '{topik_asli}' | Pesan: '{pesan}'")
+
+    #Potong Topik untuk mendapatkan posisi sensor yang jelas dari lab dan kabinet mana
+    potongan = topik_asli.split("/")
+    if len(potongan) < 4:
+        return #abaikan jika yang masuk formatnya salah 
+    
+    lab_sensor = potongan[-4]       #Mengecek nama lab
+    kabinet_sensor = potongan[-3]   #Mengecek nama kabinet
+    laci_sensor = int(potongan[-2]) #mengecek nomor laci 
+    pin_sensor = potongan[-1]       #mengecek nomor posisi/pin
+
+    nama_lab_kita = settings.get("lab_name", "Lab_mikrokontroler")
+    nama_kabinet_kita = settings.get("cabinet_name", "Smart Drawer-01")
+
+    if lab_sensor != nama_lab_kita or kabinet_sensor != nama_kabinet_kita:
+        return
+    
+    kunci_unik = f"{laci_sensor}_{pin_sensor}"
     
     # Kita harus import sqlite disini sebentar untuk ngecek topik MQTT-nya punya alat apa
     import sqlite3 
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT name FROM tools WHERE mqtt_topic = ?", (topik,))
+            cursor.execute("SELECT name FROM tools WHERE mqtt_topic = ? AND page = ?", (pin_sensor, laci_sensor))
             res = cursor.fetchone()
 
         if res:
             nama_alat = res[0]
             val = int(pesan)
-            if status_sensor_realtime.get(nama_alat) != val:
-                status_sensor_realtime[nama_alat] = val
+            if status_sensor_realtime.get(kunci_unik, 1) != val:
+                status_sensor_realtime[kunci_unik] = val
                 
                 # Nah, ini dia. Sensor meminta manajer database untuk update stok!
-                update_stok_otomatis(nama_alat, val) 
+                update_stok_otomatis(pin_sensor, laci_sensor, val) #mengirimkan posisi pin
                 
                 status_str = "DITARUH (Stok 1)" if val == 1 else "DIANGKAT (Stok 0)"
-                print(f"✅ [SENSOR -> DB] {nama_alat} -> {status_str}")
+                print(f"✅ [SENSOR] {nama_alat} (Laci {laci_sensor}-{pin_sensor})-> {status_str}")
     except Exception as e:
         print(f"❌ Error DB Flet: {e}")
 
