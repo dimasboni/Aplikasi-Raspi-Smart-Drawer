@@ -435,9 +435,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                             ),
                             status_text,
                             create_filled_button(
-                                "Simulasi Scan Tag (2596586725)",
+                                "Simulasi Scan Tag (2616388389)",
                                 "#F59E0B",
-                                lambda coba: proses_scan(coba, simu_uid="2596586725"),
+                                lambda coba: proses_scan(coba, simu_uid="2616388389"),
                                 height=35
                             )
                         ],
@@ -677,6 +677,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             color=SUB_TEXT_COLOR,
             text_align="center",
         )
+        teks_countdown = ft.Text("Waktu tersisa: 15 detik", color="red", size=20, weight="bold")
+        state = {"aktif": True}
 
         async def pantau_sensor_diambil():
             laci_alat = 1
@@ -690,20 +692,35 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
             kunci_unik = f"{laci_alat}_{slot_num}"
             
-            while status_sensor_realtime.get(kunci_unik, 1) == 1:
-                await asyncio.sleep(0.5)
-            indicator_circle.bgcolor = GREEN_SENSOR
-            sensor_box.bgcolor = "#E8F5E9"
-            status_txt.value = "Barang Terdeteksi Diambil!"
-            status_txt.color = GREEN_SENSOR
-            page.update()
-            await asyncio.sleep(1.5)
-            show_scan_tag_alat(tool_name, slot_num)
+            waktu_maksimal = 15
+            while state["aktif"] and waktu_maksimal > 0:
+                #jika alat sudah diambil maka nilai menjadi 0 
+                if status_sensor_realtime.get(kunci_unik, 1) == 0:
+                    state["aktif"] = False 
+                    indicator_circle.bgcolor = GREEN_SENSOR
+                    sensor_box.bgcolor = "#E8F5E9"
+                    status_txt.value = "Barang Terdeteksi Diambil!"
+                    status_txt.color = GREEN_SENSOR
+                    page.update()
+                    await asyncio.sleep(1.5)
+                    nav["show_scan_tag_alat"](tool_name, slot_num)
+                    return
+
+                teks_countdown.value = f"Waktu tersisa: {waktu_maksimal} detik"
+                page.update()
+            
+                await asyncio.sleep(1)
+                waktu_maksimal -= 1
+
+            if state["aktif"]: 
+                state["aktif"] = False
+                print("[TIMEOUT] User terlalu lama, batal pinjam, kembali ke Home.")
+                nav["show_home"]()
 
         page.add(
             build_standard_layout(
                 ft.Column(
-                    [sensor_box, ft.Container(height=10), status_txt],
+                    [sensor_box, ft.Container(height=10), status_txt, teks_countdown],
                     alignment="center",
                     horizontal_alignment="center",
                 )
@@ -727,7 +744,18 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         #Looping dinamis mulai dari 1 sampai jumlah_slot 
         for i in range(1, jumlah_slot + 1):
             kode_pin = f"P{str(i).zfill(2)}"
-            is_available = kode_pin in posisi_aktif
+
+            #Cek database apakah slot sesuai dengan alat yang didaftarkan di database 
+            is_milik_alat = kode_pin in posisi_aktif
+
+            #Kode unik untuk masing2 alat untuk menentukan posisi dan laci dimana alat berada 
+            kode_unik = f"{laci_saat_ini}_{kode_pin}"
+
+            #mengecek apakah alat terdeteksi sensor inframerah atau tidak 
+            is_fisik_ada = (status_sensor_realtime.get(kode_unik, 1) == 1)
+
+            #Kotak akan aktif jika alat terdeteksi sensor inframerah 
+            is_available = is_milik_alat and is_fisik_ada
 
             if is_available: 
                 #kotak aktif jika ada bendanya 

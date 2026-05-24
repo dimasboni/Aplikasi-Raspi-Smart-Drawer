@@ -7,7 +7,8 @@ from config import settings
 #ip_server_niko = settings.get("db_host", "10.71.116.208")
 #API_URL_NIKO =f"http://{ip_server_niko}/smartdrawer/api_terima.php"
 
-IP_LARAVEL = "127.0.0.1:8000"
+ip_server_niko = settings.get("db_host", "127.0.0.1:8000")
+IP_LARAVEL = f"{ip_server_niko}"
 URL_CEK_KOIN = f"http://{IP_LARAVEL}/api/cek-koin"
 URL_LOG_PINJAM = f"http://{IP_LARAVEL}/api/log-pinjam"
 
@@ -92,12 +93,13 @@ def kirim_ke_server_niko(user_name, tool_name, status):
     """Mengirim log ke server API PHP NIKO menggunakan thread terpisah."""
     def tugas_kirim():
         paket_data = {"nama_user": user_name, "nama_alat": tool_name, "status": status}
+        print(f"🚀 [API NIKO] Mengirim data: {paket_data}") # CCTV 1: Cek paket yang dikirim
         try:
-            requests.post(URL_LOG_PINJAM, json=paket_data, timeout=3)
-        except Exception: 
-            pass # Abaikan jika server error/mati
+            response = requests.post(URL_LOG_PINJAM, json=paket_data, timeout=3)
+            # CCTV 2: Cek apa jawaban dari Laravel!
+        except Exception as e: 
+            pass
     
-    # Menjalankan di background agar UI flet tidak macet menunggu balasan API
     threading.Thread(target=tugas_kirim).start()
 
 def simpan_log(user_name, tool_name, status):
