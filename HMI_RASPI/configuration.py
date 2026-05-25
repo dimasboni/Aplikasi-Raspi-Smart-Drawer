@@ -21,6 +21,7 @@ def main(page: ft.Page):
     page.title = "Smart Drawer Config Editor"
     page.window.width = 600
     page.window.height = 700
+    page.scroll = ft.ScrollMode.AUTO
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 30
 
@@ -40,6 +41,20 @@ def main(page: ft.Page):
     txt_laci_2 = ft.TextField(label="Kapasitas Laci 2", value=str(drawer_caps.get("2", "")), width=125)
     txt_laci_3 = ft.TextField(label="Kapasitas Laci 3", value=str(drawer_caps.get("3", "")), width=125)
     txt_laci_4 = ft.TextField(label="Kapasitas Laci 4", value=str(drawer_caps.get("4", "")), width=125)
+
+    def tutup_popup(e):
+        popup_sukses.open = False
+        page.update()
+
+    popup_sukses = ft.AlertDialog(
+        title=ft.Text("Saved", weight="bold", color="green"),
+        content=ft.Text("Saved Succesfully"),
+        actions=[
+            ft.TextButton("OK", on_click=tutup_popup)
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.overlay.append(popup_sukses)
 
     # 3. Fungsi Eksekusi Simpan
     def on_save(e):
@@ -61,6 +76,9 @@ def main(page: ft.Page):
 
             # Timpa file lama dengan fungsi save_config
             save_config(config_data)
+
+            popup_sukses.open = True
+            page.update()
             
             # Kasih notifikasi hijau kalau sukses
             page.snack_bar = ft.SnackBar(ft.Text("✅ Konfigurasi berhasil disimpan!"), bgcolor="green")
@@ -76,7 +94,7 @@ def main(page: ft.Page):
 
     # 4. Tampilkan semua ke layar
     page.add(
-        ft.Text("⚙️ Setup Sistem Smart Drawer", size=28, weight="bold"),
+        ft.Text("Setup Sistem Smart Drawer", size=28, weight="bold"),
         ft.Text("Sesuaikan alamat IP server dan data kabinet di bawah ini.", color="grey"),
         ft.Divider(),
         txt_mqtt_broker,
