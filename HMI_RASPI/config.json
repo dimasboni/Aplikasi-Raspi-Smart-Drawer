@@ -1,5 +1,5 @@
 {
-    "mqqt_broker": "192.168.100.37",
+    "mqqt_broker": "172.25.225.120",
     "mqqt_port": 1883,
     "db_host": "127.0.0.1:8000",
     "cabinet_id": "SD-01",
