@@ -26,6 +26,8 @@ import asyncio
 
 import flet as ft
 from PIL import Image as PILImage
+from hardware_manager import buka_laci_otomatis
+from sensor_manager import status_sensor_realtime
 
 from config import (
     BG_COLOR,
@@ -874,6 +876,18 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             laci_terpilih = int(dd_laci.value)
             jumlah_slot = DRAWER_CAPACITY.get(laci_terpilih, 16)
 
+            pin_terpakai = []
+            try: 
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT mqtt_topic FROM tools WHERE page =?", (laci_terpilih))
+                    hasil = cursor.fetchall()
+                    #hasilnya berupa list of tuples yang akan mengambil list posisi 
+                    pin_terpakai = [baris[0] for baris in hasil if baris [0]]
+            
+            except Exception as err: 
+                print(f"Position: {err} is not availaible")
+
             # Bersihkan dengan aman
             dd_pin.options.clear()
             
@@ -990,37 +1004,80 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 notif_text.value = "❌ Pilih posisi pin sensor!"
                 page.update()
                 return
+            
+            dialog_tunggu_sensor = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Waiting for Sensor....", weight="bold", color="black"),
+                content=ft.Column(
+                    [
+                        ft.ProgressRing(),
+                        ft.Container(height=10),
+                        ft.Text(f"Drawer {dd_laci.value} Open", weight="bold", color="blue", size=18),
+                        ft.Text(f"Please Place the Tool in Position {dd_pin.value}"),
+                        ft.Text("System will save automatically when the tool is placed", color="grey", size=12, text_align="center")
+                    ],
+                    tight=True,
+                    horizontal_alignment="center"
+                )
+            )
 
-            try:
-                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-                    conn.execute(
-                        "INSERT INTO tools (name, rfid_tag_uid, img, total, page, mqtt_topic, rot) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (
-                            input_nama.value.strip(),
-                            input_rfid.value.strip(),
-                            path_gambar_baru[0],
-                            1,
-                            int(dd_laci.value),
-                            dd_pin.value,
-                            0,
-                        ),
-                    )
-                    conn.commit()
-                notif_text.value = "✅ Alat berhasil ditambahkan!"
-                notif_text.color = "#10B981"
-                page.update()
+            async def pantau_sensor_tambah():
+                laci_terpilih = int(dd_laci.value)
+                pin_terpilih = dd_pin.value
+                kunci_unik = f"{laci_terpilih}_{pin_terpilih}"
 
-                async def konfirmasi_simpan():
-                    await asyncio.sleep(1.0)
-                    show_add_tool_page()
+                #Magnet lock menyala
+                buka_laci_otomatis(laci_terpilih)
 
-                page.run_task(konfirmasi_simpan)
-            except sqlite3.IntegrityError:
-                notif_text.value = "❌ RFID Tag already in use!"
-                page.update()
-            except Exception as err:
-                notif_text.value = f"❌ Gagal menyimpan: {err}"
-                page.update()
+                waktu_tunggu = 0 
+                max_waktu = 15 
+
+                #looping mengecek apakah sensor sudah bernilai 1 yang artinya alat sudah ditaruh 
+                while status_sensor_realtime.get(kunci_unik, 0) == 0:
+                    await asyncio.sleep(1)
+                    waktu_tunggu += 1 
+                    if waktu_tunggu >= max_waktu:
+                        break #waktu sudah habis
+
+                #jika sukses mendeteksi 1 maka akan menyimpan ke database 
+                if status_sensor_realtime.get(kunci_unik, 0) == 1:
+                    try:
+                        with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                            conn.execute(
+                                "INSERT INTO tools (name, rfid_tag_uid, img, total, page, mqtt_topic, rot) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                (
+                                    input_nama.value.strip(),
+                                    input_rfid.value.strip(),
+                                    path_gambar_baru[0],
+                                    1,
+                                    laci_terpilih,
+                                    pin_terpilih,
+                                    0,
+                                ),
+                            )
+                            conn.commit()
+                        notif_text.value = "✅ Alat berhasil ditambahkan!"
+                        notif_text.color = "#10B981"
+                        page.update()
+
+                        await asyncio.sleep(1.0)
+                        show_add_tool_page()
+
+                    except sqlite3.IntegrityError:
+                        dialog_tunggu_sensor.open = False
+                        notif_text.value = "❌ RFID Tag already in use!"
+                        notif_text.color = "red"
+                        page.update()
+                    except Exception as err:
+                        notif_text.value = f"❌ Failed to Save: {err}"
+                        notif_text.color = "red"
+                        page.update()
+                else: 
+                    dialog_tunggu_sensor.open = False
+                    notif_text.value = "Time out, tool not detected by sensor"
+                    notif_text.color = "red"
+                    page.update()
+            page.run_task(pantau_sensor_tambah)
 
         # Layout form
         kolom_kiri = ft.Column(
@@ -1064,10 +1121,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             ],
             spacing=15,
         )
-
-        # Save_card = build_standard_layout(
-        #   title_text="Tool Has been Added!", content_control=ft.Container(), back_func=show_edit_tools_menu
-        # )
 
         form_card = build_standard_layout(
             title_text="ADD NEW TOOLS",
