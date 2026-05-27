@@ -16,7 +16,7 @@ import flet as ft
 
 from config import TEXT_COLOR
 from ui_komponen import create_filled_button, create_menu_card, build_standard_layout
-
+from hardware_manager import bersihkan_gpio
 
 def register_home_page(page: ft.Page, session_data: dict, nav: dict):
     """
@@ -35,7 +35,9 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
             print("1. Menutup layar UI Flet...")
             await page.window.close()
             await asyncio.sleep(0.5)
-            print("2. Mematikan proses python...")
+            print("2. Membersihkan pin perangkat keras")
+            bersihkan_gpio()
+            print("3.Mematikan proses python...")
             os._exit(0)
 
         def pemicu_exit(e):

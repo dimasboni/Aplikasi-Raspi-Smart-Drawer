@@ -35,6 +35,7 @@ from config import (
 from db_manager import simpan_log, simpan_log_pengembalian, get_borrowed_tools, get_tool_positions
 from sensor_manager import status_sensor_realtime
 from ui_komponen import create_filled_button, build_standard_layout
+from hardware_manager import buka_laci_otomatis
 
 
 def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
@@ -178,6 +179,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         async def pantau_sensor_ditaruh():
             laci_tujuan = scanned_tools[index]["laci"]
+            buka_laci_otomatis(laci_tujuan)
             kunci_unik = f"{laci_tujuan}_{pin_terpilih}"
             while status_sensor_realtime.get(kunci_unik, 0) == 0:
                 await asyncio.sleep(0.5)
@@ -690,8 +692,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception: 
                 pass
 
+            buka_laci_otomatis(laci_alat)
+
             kunci_unik = f"{laci_alat}_{slot_num}"
-            
             waktu_maksimal = 15
             while state["aktif"] and waktu_maksimal > 0:
                 #jika alat sudah diambil maka nilai menjadi 0 

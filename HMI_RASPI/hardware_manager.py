@@ -1,0 +1,68 @@
+import time 
+import threading 
+
+#Digunakan untuk mengecek tampilan di laptop
+#Jadi tidak akan membuat vscode error 
+
+try: 
+    import RPi.GPIO as GPIO 
+    GPIO_AVAILABLE = True
+    print("Pin is Available to use")
+except: 
+    GPIO_AVAILABLE = False 
+    print("Pin is not available")
+
+if GPIO_AVAILABLE: 
+    #Menggunakan pin BCM 
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+
+    #Pemetaan pin yang digunakan untuk Magnet Lock 
+    pin_magnet = {
+        1: 24,      
+        2: 23,
+        3: 17,
+        4: 26
+    }
+    
+    for pin in  pin_magnet.values():
+    #pin dimatikan dulu untuk menjaga sisa listrik yang ada 
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, GPIO.HIGH)
+
+else:
+    pin_magnet = {
+        1: 22,
+        2: 23,
+        3: 24,
+        4: 25
+    }
+
+# Fungsi membuka laci 
+def membuka_laci(nomor_laci):
+    pin_target = pin_magnet.get(nomor_laci)
+
+    if pin_target:
+        print(f"membuka laci {nomor_laci}, pin BCM {pin_target}")
+
+        if GPIO_AVAILABLE: 
+            GPIO.output(pin_target, GPIO.LOW) #laci terbuka 
+
+        time.sleep(5) #terbuka selama 5 detik 
+
+        print(f"Mengunci kembali laci {nomor_laci}")
+
+        if GPIO_AVAILABLE:
+            GPIO.output(pin_target, GPIO.HIGH)
+
+#Fungsi pemicu yang akan dipanggil 
+
+def buka_laci_otomatis(nomor_laci):
+    #Membuka laci agar UI tetap lancar 
+    task = threading.Thread(target=membuka_laci, args=(nomor_laci,))
+    task.start()
+
+def bersihkan_gpio():
+    #memanggil ketika aplikasi di tutup 
+    if GPIO_AVAILABLE:
+        GPIO.cleanup()
