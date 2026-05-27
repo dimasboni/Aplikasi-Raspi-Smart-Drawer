@@ -880,10 +880,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             try: 
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
                     cursor = conn.cursor()
-                    cursor.execute("SELECT mqtt_topic FROM tools WHERE page =?", (laci_terpilih))
+                    cursor.execute("SELECT mqtt_topic FROM tools WHERE page =?", (laci_terpilih,))
                     hasil = cursor.fetchall()
                     #hasilnya berupa list of tuples yang akan mengambil list posisi 
-                    pin_terpakai = [baris[0] for baris in hasil if baris [0]]
+                    pin_terpakai = [str(baris[0]).strip() for baris in hasil if baris [0]]
             
             except Exception as err: 
                 print(f"Position: {err} is not availaible")
@@ -894,7 +894,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             # Isi ulang
             for i in range(1, jumlah_slot + 1):
                 kode = f"P{str(i).zfill(2)}"
-                dd_pin.options.append(ft.dropdown.Option(key=kode, text=kode))
+                if kode not in pin_terpakai:
+                    dd_pin.options.append(ft.dropdown.Option(key=kode, text=kode))
+            if len(dd_pin.options) == 0:
+                dd_pin.options.append(ft.dropdown.Option(key="", text="Position is not available", disabled=True))
 
             dd_pin.value = None
             page.update()
@@ -915,7 +918,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             ],
             on_select=update_pin_options,
         )
-        dd_laci.on_change = update_pin_options
+        update_pin_options(None)
         notif_text = ft.Text("", color="red", size=14, weight="bold")
 
         # Pop up scan RFID
@@ -1020,6 +1023,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     horizontal_alignment="center"
                 )
             )
+
+            page.overlay.append(dialog_tunggu_sensor)
+            dialog_tunggu_sensor.open = True
+            page.update()
 
             async def pantau_sensor_tambah():
                 laci_terpilih = int(dd_laci.value)

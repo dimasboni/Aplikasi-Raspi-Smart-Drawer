@@ -38,7 +38,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         page.add(
             build_standard_layout(
-                title_text="Menu User",
+                title_text="MENU USER",
                 content_control=ft.Column(
                     [
                         ft.Container(height=15),
