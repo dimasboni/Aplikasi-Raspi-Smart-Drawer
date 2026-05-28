@@ -82,7 +82,8 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
                     ),
                 ],
                 horizontal_alignment="center",
-                alignment=ft.MainAxisAlignment.START,
+                alignment="center",
+                margin=ft.margin.only(top=-100)
             ),
             action_button=ft.PopupMenuButton(
                 icon=ft.Icons.EXIT_TO_APP_SHARP,
