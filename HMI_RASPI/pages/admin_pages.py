@@ -289,14 +289,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 update_browser_ui()
 
             def pilih_file_manual(filepath):
-                nama_asli = os.path.basename(filepath)
-                nama_baru = f"custom_{int(time.time())}_{nama_asli}"
-                lokasi_simpan = os.path.join("assets", nama_baru)
+                path_gambar_sekarang[0] = filepath
                 try:
-                    shutil.copy(filepath, lokasi_simpan)
-                    path_gambar_sekarang[0] = nama_baru
                     preview_img.content = ft.Image(
-                        src=f"/{nama_baru}", width=150, height=150, fit="contain"
+                        src=filepath, width=150, height=150, fit="contain"
                     )
                     dialog_browser.open = False
                     page.update()
@@ -328,35 +324,41 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 page.update()
 
             def eksekusi_simpan(e):
-                file_terakhir = path_gambar_sekarang[0]
-                if "_" in file_terakhir:
-                    nama_asli = (
-                        file_terakhir.split("_")[0] + os.path.splitext(file_terakhir)[1]
-                    )
-                    try:
-                        shutil.copy(
-                            os.path.join("assets", file_terakhir),
-                            os.path.join("assets", nama_asli),
-                        )
-                        path_gambar_sekarang[0] = nama_asli
-                    except Exception:
-                        pass
-                try:
+                try: 
+                    filepath_asli = path_gambar_sekarang[0]
+                    nama_asli = os.path.basename(filepath_asli)
+                    nama_final = nama_asli 
+                    if os.path.isabs(filepath_asli):
+                        lokasi_simpan = os.path.join("assets", nama_asli)
+                        
+                        if os.path.abspath(filepath_asli) != os.path.abspath(lokasi_simpan):
+                            
+                            #DETEKTOR TABRAKAN NAMA
+                            if os.path.exists(lokasi_simpan):
+                                nama_file, ext = os.path.splitext(nama_asli)
+                                counter = 1
+                                while os.path.exists(os.path.join("assets", f"{nama_file}_{counter}{ext}")):
+                                    counter += 1
+                                nama_final = f"{nama_file}_{counter}{ext}"
+                                lokasi_simpan = os.path.join("assets", nama_final)
+
+                            shutil.copy(filepath_asli, lokasi_simpan)
+
                     with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                         conn.execute(
-                            "UPDATE tools SET name = ?, rfid_tag_uid = ?, img = ? WHERE name = ?",
+                            "UPDATE tools SET name = ?, rfid_tag_uid = ?, img = ? WHERE rfid_tag_uid = ?",
                             (
                                 input_nama.value,
                                 input_rfid.value,
-                                path_gambar_sekarang[0],
-                                nama_alat_lama,
+                                nama_final, 
+                                rfid_lama, 
                             ),
                         )
                         conn.commit()
                         dialog_edit.open = False
                         page.run_task(tunda_lalu_refresh)
 
-                except Exception:
+                except Exception as err:
                     pass
 
             input_nama = ft.TextField(label="Nama Alat", value=nama_alat_lama)
@@ -802,14 +804,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
 
         def pilih_gambar(filepath):
-            nama_asli = os.path.basename(filepath)
-            nama_baru = f"tool_{int(time.time())}_{nama_asli}"
-            lokasi_simpan = os.path.join("assets", nama_baru)
+            path_gambar_baru[0] = filepath
             try:
-                shutil.copy(filepath, lokasi_simpan)
-                path_gambar_baru[0] = nama_baru
                 preview_img.content = ft.Image(
-                    src=f"/{nama_baru}", width=220, height=220, fit="contain"
+                    src=filepath, width=220, height=220, fit="contain"
                 )
                 dialog_tambah_browser.open = False
                 page.update()
@@ -1049,13 +1047,35 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 #jika sukses mendeteksi 1 maka akan menyimpan ke database 
                 if status_sensor_realtime.get(kunci_unik, 0) == 1:
                     try:
+                        filepath_asli = path_gambar_baru[0]
+                        nama_asli = os.path.basename(filepath_asli)
+                        nama_final = nama_asli
+
+                        if os.path.isabs(filepath_asli):
+                            lokasi_simpan = os.path.join("assets", nama_asli)
+                            
+                            # Jika dari luar folder assets
+                            if os.path.abspath(filepath_asli) != os.path.abspath(lokasi_simpan):
+                                
+                                #DETEKTOR TABRAKAN NAMA
+                                if os.path.exists(lokasi_simpan):
+                                    nama_file, ext = os.path.splitext(nama_asli)
+                                    counter = 1
+                                    # Looping cari nama yang belum dipakai
+                                    while os.path.exists(os.path.join("assets", f"{nama_file}_{counter}{ext}")):
+                                        counter += 1
+                                    nama_final = f"{nama_file}_{counter}{ext}"
+                                    lokasi_simpan = os.path.join("assets", nama_final)
+                                
+                                shutil.copy(filepath_asli, lokasi_simpan)
+
                         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                             conn.execute(
                                 "INSERT INTO tools (name, rfid_tag_uid, img, total, page, mqtt_topic, rot) VALUES (?, ?, ?, ?, ?, ?, ?)",
                                 (
                                     input_nama.value.strip(),
                                     input_rfid.value.strip(),
-                                    path_gambar_baru[0],
+                                    nama_final,
                                     1,
                                     laci_terpilih,
                                     pin_terpilih,
@@ -1063,6 +1083,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 ),
                             )
                             conn.commit()
+
+                        dialog_tunggu_sensor.open = False
+
                         notif_text.value = "✅ Alat berhasil ditambahkan!"
                         notif_text.color = "#10B981"
                         page.update()

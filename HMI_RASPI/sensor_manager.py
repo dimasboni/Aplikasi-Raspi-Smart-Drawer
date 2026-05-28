@@ -76,31 +76,28 @@ def on_mqtt_message(client, userdata, msg):
         return
     
     kunci_unik = f"{laci_sensor}_{pin_sensor}"
+    val = int(pesan)
+
+    status_sensor_realtime[kunci_unik] = val 
+    print(f"Paket diterima dengan topik = {topik_asli} | pesan '{val}")
     
     import sqlite3 
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
             # CCTV 2: Mencari alat di Database
-            cursor.execute("SELECT name FROM tools WHERE mqtt_topic = ? AND page = ?", (pin_sensor, laci_sensor))
-            res = cursor.fetchone()
+            res = cursor.execute("SELECT name FROM tools WHERE mqtt_topic = ? AND page = ?", (pin_sensor, laci_sensor)).fetchone()
 
         if res:
             nama_alat = res[0]
-            val = int(pesan)
-            print(f"🔍 [CEK STATUS] Alat: {nama_alat} | Kunci: {kunci_unik} | Status Memory: {status_sensor_realtime.get(kunci_unik, 1)} | Sensor Wemos: {val}")
-            
-            # CCTV 3: Memeriksa Perubahan Angka Sensor
-            if status_sensor_realtime.get(kunci_unik, 1) != val:
-                status_sensor_realtime[kunci_unik] = val
-                update_stok_otomatis(pin_sensor, laci_sensor, val) 
-                
-                status_str = "DITARUH (Stok 1)" if val == 1 else "DIANGKAT (Stok 0)"
-                print(f"✅ [SUKSES MASUK FLET] {nama_alat} (Laci {laci_sensor}-{pin_sensor}) -> {status_str}")
-            else:
-                print(f"ℹ️ [DIABAIKAN] Status sensor tidak berubah (Tetap {val})")
+            print(f"🔍 [CEK STATUS] Alat: {nama_alat} | Kunci: {kunci_unik} | Sensor Wemos: {val}")
+
+            update_stok_otomatis(pin_sensor, laci_sensor, val)
+    
+            status_str = "DITARUH (Stok 1)" if val == 1 else "DIANGKAT (Stok 0)"
+            print(f"✅ [SUKSES MASUK FLET] {nama_alat} (Laci {laci_sensor}-{pin_sensor}) -> {status_str}")
         else:
-            print(f"🛑 [DB KOSONG] Tidak ada nama alat yang terdaftar di Database untuk Laci {laci_sensor} posisi {pin_sensor}")
+            print(f"🛑 [DB KOSONG] Tidak ada nama alat yang terdaftar di Database untuk Laci {laci_sensor} posisi {pin_sensor}. Meneruskan sinyal ke form tambah alat")
             
     except Exception as e:
         print(f"❌ Error DB Flet: {e}")
