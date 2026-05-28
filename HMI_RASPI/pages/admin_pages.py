@@ -409,17 +409,17 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
 
         # ---- Sub-fungsi: hapus alat dari database ----
-        def hapus_alat_db(nama_alat):
+        def hapus_alat_db(rfid_target):
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                     conn.cursor().execute(
-                        "DELETE FROM tools WHERE name = ?", (nama_alat,)
+                        "DELETE FROM tools WHERE rfid_tag_uid = ?", (rfid_target,)
                     )
                     conn.commit()
             except Exception:
                 pass
 
-        def konfirmasi_hapus(nama_alat):
+        def konfirmasi_hapus(nama_alat, rfid_target):
             def tutup_dialog(e):
                 dialog_hapus.open = False
                 page.update()
@@ -427,7 +427,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             def jalankan_hapus(e):
                 dialog_hapus.open = False
                 page.update()
-                hapus_alat_db(nama_alat)
+                hapus_alat_db(rfid_target)
                 page.run_task(tunda_lalu_refresh)
 
             dialog_hapus.title = ft.Text(
@@ -440,10 +440,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
             dialog_hapus.actions = [
                 ft.ElevatedButton(
-                    "Batal", on_click=tutup_dialog, style=ft.ButtonStyle(color="grey")
+                    "Cancel", on_click=tutup_dialog, style=ft.ButtonStyle(color="grey")
                 ),
                 ft.ElevatedButton(
-                    "Hapus", on_click=jalankan_hapus, bgcolor="red", color="white"
+                    "Delete", on_click=jalankan_hapus, bgcolor="red", color="white"
                 ),
             ]
             dialog_hapus.open = True
@@ -506,10 +506,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             ),
                             ft.Container(
                                 content=ft.Text(
-                                    "🗑️ Hapus", size=14, color="red", weight="bold"
+                                    "🗑️ Delete", size=14, color="red", weight="bold"
                                 ),
                                 padding=10,
-                                on_click=lambda _, n=nama_alat: konfirmasi_hapus(n),
+                                on_click=lambda _, n=nama_alat, r=rfid_alat: konfirmasi_hapus(n, r),
                                 ink=True,
                             ),
                         ],
