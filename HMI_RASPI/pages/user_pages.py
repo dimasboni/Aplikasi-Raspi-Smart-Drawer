@@ -100,19 +100,19 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
             segments=[
                 ft.Segment(
                     value="1",
-                    label=ft.Text("Drawer 1", size=20, weight="bold"),
+                    label=ft.Text("Drawer 1", size=10, weight="bold"),
                 ),
                 ft.Segment(
                     value="2",
-                    label=ft.Text("Drawer 2", size=20, weight="bold"),
+                    label=ft.Text("Drawer 2", size=10, weight="bold"),
                 ),
                 ft.Segment(
                     value="3",
-                    label=ft.Text("Drawer 3", size=20, weight="bold")
+                    label=ft.Text("Drawer 3", size=10, weight="bold")
                 ),
                 ft.Segment(
                     value="4",
-                    label=ft.Text("Drawer 4", size=20, weight="bold")
+                    label=ft.Text("Drawer 4", size=10, weight="bold")
                 )
             ]
         )
