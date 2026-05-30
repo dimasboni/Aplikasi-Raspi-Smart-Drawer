@@ -71,7 +71,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         "You're all set!", size=28, weight="bold", color=GREEN_SENSOR
                     ),
                     ft.Text(
-                        f"Alat {tool_name} berhasil dipinjam.", size=16, color="black"
+                        f"The {tool_name} is all yours.", size=16, color="black"
                     ),
                     ft.Container(height=10),
                     ft.ProgressRing(
@@ -114,19 +114,19 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 [
                     ft.Image(src="/success_kembali.png", width=100, height=100),
                     ft.Text(
-                        "Pengembalian Berhasil!",
+                        "You're good to go!",
                         size=28,
                         weight="bold",
                         color="#3B82F6",
                     ),
                     ft.Text(
-                        "Semua alat telah masuk ke dalam laci.", size=16, color="black"
+                        "Everything is inside the drawer", size=16, color="black"
                     ),
                     ft.Container(height=10),
                     ft.ProgressRing(
                         width=25, height=25, color="#3B82F6", stroke_width=3
                     ),
-                    ft.Text("Menutup sesi otomatis...", size=12, color="grey"),
+                    ft.Text("Closing session...", size=12, color="grey"),
                 ],
                 alignment="center",
                 horizontal_alignment="center",
