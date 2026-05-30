@@ -66,9 +66,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         success_card = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text("✅", size=80),
+                    ft.Image(src="/success.png", width=100, height=100),
                     ft.Text(
-                        "Peminjaman Sukses!", size=28, weight="bold", color=GREEN_SENSOR
+                        "You're all set!", size=28, weight="bold", color=GREEN_SENSOR
                     ),
                     ft.Text(
                         f"Alat {tool_name} berhasil dipinjam.", size=16, color="black"
@@ -88,6 +88,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             bgcolor="white",
             border_radius=20,
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-130),
             alignment=ft.Alignment(0, 0),
         )
         page.add(
@@ -110,7 +111,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         success_card = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text("🎉", size=80),
+                    ft.Image(src="/success_kembali.png", width=100, height=100),
                     ft.Text(
                         "Pengembalian Berhasil!",
                         size=28,
@@ -135,6 +136,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             bgcolor="white",
             border_radius=20,
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-130),
             alignment=ft.Alignment(0, 0),
         )
         page.add(
