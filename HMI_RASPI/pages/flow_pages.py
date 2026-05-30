@@ -280,10 +280,10 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 await asyncio.sleep(1)
                 waktu_maksimal -= 1
                 
-                if state["aktif"]:
-                    state["aktif"] = False
-                    print("[TIMEOUT] User timeout on return.")
-                    nav["show_home"]()
+            if state["aktif"]:
+                state["aktif"] = False
+                print("[TIMEOUT] User timeout on return.")
+                nav["show_home"]()
 
         page.add(
             build_standard_layout(
