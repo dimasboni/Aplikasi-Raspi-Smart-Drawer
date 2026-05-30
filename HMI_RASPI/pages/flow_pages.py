@@ -212,9 +212,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24),
                     teks_countdown
                 ],
+                alignment="center",
+                spacing=10,
             ),
-            alignment="center",
-            spacing=10,
             bgcolor="#FEE2E2",
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
             border_radius=20, 
@@ -896,7 +896,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     state["aktif"] = False
                     indicator_circle.bgcolor = GREEN_SENSOR
                     radar_ring.color = GREEN_SENSOR
-                    radar_ring.bgcolor
+                    radar_ring.bgcolor = "#E8F5E9"
                     sensor_box.border = ft.border.all(3, GREEN_SENSOR)
                     status_txt.value = "Tool has been taken!"
                     status_txt.color = GREEN_SENSOR
