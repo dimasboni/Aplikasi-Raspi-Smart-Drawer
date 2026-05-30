@@ -215,7 +215,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 alignment="center",
                 spacing=10,
                 bgcolor="#FEE2E2",
-                padding=ft.padding.symmetric(horizontal=20, verical=10),
+                padding=ft.padding.symmetric(horizontal=20, vertical=10),
                 border_radius=20, 
                 width=220,
                 animate=300
