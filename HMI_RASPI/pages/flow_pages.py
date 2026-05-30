@@ -774,6 +774,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             border_radius=20,
             border=ft.border.all(2, BLUE_SENSOR),
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-130),
             on_click=lambda _: input_tag.focus() if state["aktif"] else None,
         )
         page.add(
