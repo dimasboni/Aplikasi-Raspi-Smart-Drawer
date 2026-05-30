@@ -468,7 +468,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             ],
             horizontal_alignment="center",
             alignment="center",
-            margin=ft.margin.only(top=-100)
+            margin=ft.margin.only(top=-150)
         )
         page.add(
             build_standard_layout(content, back_func=nav["show_list_pinjaman_user"])
@@ -734,7 +734,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             alignment=ft.Alignment(0, 0),
             shadow=ft.BoxShadow(blur_radius=25,color=SHADOW_COLOR),
             animate=300,
-            margin=ft.margin.only(top=-50)
+            margin=ft.margin.only(top=-100)
         )
      
         state = {"aktif": True}
