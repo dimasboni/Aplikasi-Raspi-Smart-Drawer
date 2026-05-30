@@ -32,7 +32,12 @@ from config import (
     BLUE_SENSOR,
     GREEN_SENSOR,
 )
-from db_manager import simpan_log, simpan_log_pengembalian, get_borrowed_tools, get_tool_positions
+from db_manager import (
+    simpan_log,
+    simpan_log_pengembalian,
+    get_borrowed_tools,
+    get_tool_positions,
+)
 from sensor_manager import status_sensor_realtime
 from ui_komponen import create_filled_button, build_standard_layout
 from hardware_manager import buka_laci_otomatis
@@ -149,62 +154,152 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     def show_visual_sensor_kembali(scanned_tools, index, pin_terpilih):
         page.clean()
-        current_tool = scanned_tools[index]["name"]
-        indicator = ft.Container(
-            content=ft.Text("📥", size=50),
+        tool_name = scanned_tools[index]["name"]
+        laci_tujuan = scanned_tools[index]["laci"]
+        total_barang = len(scanned_tools)
+        barang_ke = index + 1 
+        indicator_circle = ft.Container(
+            content=ft.Text(str(pin_terpilih), size =45, weight="bold", color="white"),
             width=120,
             height=120,
-            bgcolor="orange",
+            bgcolor=BLUE_SENSOR,
             border_radius=60,
             alignment=ft.Alignment(0, 0),
             animate=300,
         )
-        sensor_box = ft.Container(
-            content=indicator,
-            width=800,
-            height=350,
-            bgcolor="#FFF3E0",
-            border_radius=20,
-            alignment=ft.Alignment(0, 0),
-            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR),
-            animate=300,
+        radar_ring = ft.ProgressRing( 
+            width=150, 
+            height=150, 
+            stroke_width=8,
+            color=BLUE_SENSOR,
+            bgcolor="#E3F2FD",
         )
+        radar_stack = ft.Stack(
+            [
+                radar_ring, 
+                ft.Container(
+                    content=indicator_circle, 
+                    top=15, 
+                    left=15
+                )
+            ],
+            width=150, 
+            height=150
+        )
+
         status_txt = ft.Text(
-            f"MENUNGGU SENSOR IR...\nSilakan taruh {current_tool} ke posisi {pin_terpilih}\n({index+1}/{len(scanned_tools)})",
-            size=18,
-            color="black",
+            f"RETURN THE {tool_name.upper()} ({barang_ke}/{total_barang})",
+            size=22,
+            color=BLUE_SENSOR,
             weight="bold",
             text_align="center",
         )
+        sub_status_txt = ft.Text(
+            f"DRAWER {laci_tujuan} IS OPEN. PLEASE RETURN THE TOOL TO POSITION {pin_terpilih}.",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
+        )
+        teks_countdown = ft.Text(
+            "15 seconds",
+            color="red",
+            size=24, 
+            weight="bold"
+        )
+        box_countdown = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.TIMER, ft.color.RED, size=24, weight="bold"),
+                    teks_countdown
+                ],
+                alignment="center",
+                spacing=10,
+                bgcolor="#FEE2E2",
+                padding=ft.padding.symmetric(horizontal=20, verical=10),
+                border_radius=20, 
+                width=220,
+                animate=300
+            )
+
+        )
+        sensor_box = ft.Container(
+            content=ft.Column(
+                [
+                    radar_stack,
+                    ft.Container(height=10),
+                    status_txt,
+                    sub_status_txt, 
+                    ft.Container(height=10), 
+                    box_countdown, 
+                ],
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            width=700,
+            height=420, 
+            bgcolor="white",
+            border=ft.border.all(3, BLUE_SENSOR),
+            border_radius=20, 
+            alignment=ft.Alignment(0, 0),
+            shadow=ft.BoxShadow(
+                blur_radius=25,
+                color=SHADOW_COLOR
+            ),
+            animate=300,
+            margin=ft.margin.only(top=-150)
+        )
+
+        state = {"aktif": True}
 
         async def pantau_sensor_ditaruh():
-            laci_tujuan = scanned_tools[index]["laci"]
             buka_laci_otomatis(laci_tujuan)
             kunci_unik = f"{laci_tujuan}_{pin_terpilih}"
-            while status_sensor_realtime.get(kunci_unik, 0) == 0:
-                await asyncio.sleep(0.5)
-            indicator.bgcolor = GREEN_SENSOR
-            sensor_box.bgcolor = "#E8F5E9"
-            status_txt.value = f"{current_tool} Berhasil Ditaruh di posisi {pin_terpilih}!"
-            status_txt.color = GREEN_SENSOR
-            page.update()
-            simpan_log_pengembalian(session_data["user_now"], current_tool)
-            await asyncio.sleep(2.0)
-            show_kembali_position_selection(scanned_tools, index + 1)
+            waktu_maksimal = 15
+
+            while state["aktif"] and waktu_maksimal > 0:
+                if status_sensor_realtime.get(kunci_unik, 0) == 1:
+                    state["aktif"] = False
+                    indicator_circle.bgcolor = GREEN_SENSOR
+                    radar_ring.color = GREEN_SENSOR
+                    radar_ring.bgcolor = "#E8F5E9"
+                    sensor_box.border = ft.border.all(3, GREEN_SENSOR)
+                    status_txt.value = f"{tool_name.upper()} Detected in Position {pin_terpilih}!"
+                    status_txt.color = GREEN_SENSOR
+                    sub_status_txt.value = "Processing return..."
+                    box_countdown.visible = False
+                    page.update()
+                    
+                    simpan_log_pengembalian(session_data["user_now"], tool_name)
+                    await asyncio.sleep(2.0)
+
+                    show_kembali_position_selection(scanned_tools, index + 1)
+                    return
+                
+                teks_countdown.value = f"{waktu_maksimal} seconds"
+                page.update()
+                await asyncio.sleep(1)
+                waktu_maksimal -= 1
+                
+                if state["aktif"]:
+                    state["aktif"] = False
+                    print("[TIMEOUT] User timeout on return.")
+                    nav["show_home"]()
 
         page.add(
             build_standard_layout(
                 ft.Column(
-                    [sensor_box, ft.Container(height=10), status_txt],
+                    [sensor_box],
                     alignment="center",
                     horizontal_alignment="center",
                 )
             )
         )
         page.run_task(pantau_sensor_ditaruh)
-    #==========================================================================
-    # show_kembali_position_selection 
-    #==========================================================================
+
+    # ==========================================================================
+    # show_kembali_position_selection
+    # ==========================================================================
 
     def show_kembali_position_selection(scanned_tools, index):
         if index >= len(scanned_tools):
@@ -214,7 +309,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         current_item = scanned_tools[index]
         tool_name = current_item["name"]
-        pin_tujuan= current_item["pin"]
+        pin_tujuan = current_item["pin"]
         laci_tujuan = current_item["laci"]
 
         jumlah_slot = DRAWER_CAPACITY.get(laci_tujuan, 16)
@@ -223,44 +318,60 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         for i in range(1, jumlah_slot + 1):
             kode_pin = f"P{str(i).zfill(2)}"
 
-            if kode_pin == pin_tujuan: 
-                kotak=ft.Container(
+            if kode_pin == pin_tujuan:
+                kotak = ft.Container(
                     content=ft.Text(str(i), weight="bold", color="white"),
                     alignment=ft.Alignment(0, 0),
                     bgcolor=GREEN_SENSOR,
                     border_radius=10,
                     ink=True,
-                    on_click=lambda e, p=kode_pin: show_visual_sensor_kembali(scanned_tools, index, p),
+                    on_click=lambda e, p=kode_pin: show_visual_sensor_kembali(
+                        scanned_tools, index, p
+                    ),
                 )
-            else: 
+            else:
                 kotak = ft.Container(
-                    content= ft.Text(str(i), weight="bold", color="grey"),
+                    content=ft.Text(str(i), weight="bold", color="grey"),
                     alignment=ft.Alignment(0, 0),
                     bgcolor="#E5E7EB",
                     border=ft.border.all(2, "#D1D5DB"),
                     border_radius=10,
                 )
             pos_grid.controls.append(kotak)
-        
+
         page.add(
             build_standard_layout(
                 ft.Column(
                     [
-                        ft.Text(f"Kembalikan {tool_name} ke posisi aslinya", size=28, weight="bold", color=TEXT_COLOR),
-                        ft.Text(f"Open Drawer {laci_tujuan} taruh di posisi {pin_tujuan}", size=20, weight="bold", color=SUB_TEXT_COLOR),
+                        ft.Text(
+                            f"Kembalikan {tool_name} ke posisi aslinya",
+                            size=28,
+                            weight="bold",
+                            color=TEXT_COLOR,
+                        ),
+                        ft.Text(
+                            f"Open Drawer {laci_tujuan} taruh di posisi {pin_tujuan}",
+                            size=20,
+                            weight="bold",
+                            color=SUB_TEXT_COLOR,
+                        ),
                         ft.Container(height=20),
                         ft.Container(content=pos_grid, height=300, width=600),
                     ],
-                    horizontal_alignment="center", alignment="center",
+                    horizontal_alignment="center",
+                    alignment="center",
                 ),
             )
         )
-            
+
     # ------------------------------------------------------------------
     # SHOW KONFIRMASI KEMBALI
     # ------------------------------------------------------------------
     def show_konfirmasi_kembali(scanned_tools):
         page.clean()
+
+        scanned_tools.sort(key=lambda x: int(x["laci"]))
+
         list_ui = ft.Column(
             spacing=10,
             scroll=ft.ScrollMode.AUTO,
@@ -269,12 +380,25 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         for idx, item in enumerate(scanned_tools):
             list_ui.controls.append(
                 ft.Container(
-                    content=ft.Row([
-                        #Menampilkan nama alat
-                        ft.Text(f"{idx+1}. {item['name']}", size=18, weight="bold", color="black"),
-                        #Menampilkan Rumah aslinya 
-                        ft.Text(f"Kembali ke: laci {item['laci']} - {item['pin']}", size=14, color=GREEN_SENSOR, weight="bold")
-                    ], alignment="spaceBetween"),
+                    content=ft.Row(
+                        [
+                            # Menampilkan nama alat
+                            ft.Text(
+                                f"{idx+1}. {item['name']}",
+                                size=18,
+                                weight="bold",
+                                color="black",
+                            ),
+                            # Menampilkan Rumah aslinya
+                            ft.Text(
+                                f"Kembali ke: laci {item['laci']} - {item['pin']}",
+                                size=14,
+                                color=GREEN_SENSOR,
+                                weight="bold",
+                            ),
+                        ],
+                        alignment="spaceBetween",
+                    ),
                     padding=15,
                     bgcolor="#F9FAFB",
                     border_radius=10,
@@ -285,7 +409,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         content = ft.Column(
             [
                 ft.Text(
-                    "Yakin kembalikan alat berikut?",
+                    "Are you sure you want to return the following tools?",
                     size=24,
                     weight="bold",
                     color="black",
@@ -376,7 +500,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
 
         def proses_scan(e, simu_uid=None):
-            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip() 
+            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
             input_tag.value = ""
             page.update()
             try:
@@ -393,14 +517,20 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
                     if res[0] in borrowed_tools:
                         if tool_name in borrowed_tools:
-                            sudah_ada = any(item["pin"] == tool_pin for item in scanned_items)
+                            sudah_ada = any(
+                                item["pin"] == tool_pin for item in scanned_items
+                            )
                             if not sudah_ada:
-                                scanned_items.append({
-                                    "name": tool_name,
-                                    "pin": tool_pin, 
-                                    "laci": tool_laci
-                                })
-                                status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
+                                scanned_items.append(
+                                    {
+                                        "name": tool_name,
+                                        "pin": tool_pin,
+                                        "laci": tool_laci,
+                                    }
+                                )
+                                status_text.value = (
+                                    f"Berhasil: {tool_name} (Asal:{tool_pin})"
+                                )
                                 status_text.color = "#10B981"
                                 update_ui()
                         else:
@@ -440,8 +570,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                                 "Simulasi Scan Tag (2616388389)",
                                 "#F59E0B",
                                 lambda coba: proses_scan(coba, simu_uid="2616388389"),
-                                height=35
-                            )
+                                height=35,
+                            ),
                         ],
                         spacing=5,
                     ),
@@ -468,7 +598,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             ],
             horizontal_alignment="center",
             alignment="center",
-            margin=ft.margin.only(top=-150)
+            margin=ft.margin.only(top=-150),
         )
         page.add(
             build_standard_layout(content, back_func=nav["show_list_pinjaman_user"])
@@ -484,16 +614,25 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         state = {"aktif": True}
 
-        #mengambil UID asli dari Db untuk modal tombol simulasi 
+        # mengambil UID asli dari Db untuk modal tombol simulasi
         uid_simulasi_benar = ""
-        try: 
+        try:
             with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-                res = conn.cursor().execute ("SELECT rfid_tag_uid FROM tools WHERE TRIM(name) = ?", (tool_name.strip(),)).fetchone()
-                if res: 
+                res = (
+                    conn.cursor()
+                    .execute(
+                        "SELECT rfid_tag_uid FROM tools WHERE TRIM(name) = ?",
+                        (tool_name.strip(),),
+                    )
+                    .fetchone()
+                )
+                if res:
                     uid_simulasi_benar = str(res[0])
-                print(f"🔍 DEBUG CARI UID: Alat '{tool_name}' -> Ditemukan UID: '{uid_simulasi_benar}'")
-        except: 
-            pass 
+                print(
+                    f"🔍 DEBUG CARI UID: Alat '{tool_name}' -> Ditemukan UID: '{uid_simulasi_benar}'"
+                )
+        except:
+            pass
         input_tag = ft.TextField(
             autofocus=True,
             width=1,
@@ -515,7 +654,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             if not state["aktif"]:
                 return
             uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
-            print(f"🚀 DEBUG UID SCAN: Alat = {tool_name} | UID = '{uid_tag}' | Pin = {pin_terpilih}")
+            print(
+                f"🚀 DEBUG UID SCAN: Alat = {tool_name} | UID = '{uid_tag}' | Pin = {pin_terpilih}"
+            )
             input_tag.disabled = True
             visual_card.border = ft.border.all(3, "#F59E0B")
             status_text.value = "Mencocokkan Data..."
@@ -616,7 +757,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                                 "Simulasi Scan Tag",
                                 "green",
                                 lambda coba_aja: page.run_task(
-                                    proses_scan_tag, coba_aja, simu_uid=uid_simulasi_benar,
+                                    proses_scan_tag,
+                                    coba_aja,
+                                    simu_uid=uid_simulasi_benar,
                                 ),
                             )
                         ],
@@ -665,20 +808,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
         radar_ring = ft.ProgressRing(
-            width = 150, 
-            height = 150,
-            stroke_width = 8, 
-            color = BLUE_SENSOR, 
-            bgcolor = "E3F2FD"
+            width=150, height=150, stroke_width=8, color=BLUE_SENSOR, bgcolor="E3F2FD"
         )
 
         radar_stack = ft.Stack(
-            [
-                radar_ring, 
-                ft.Container(content=indicator_circle, top=15, left=15)    
-            ],
-            width=150, 
-            height=150
+            [radar_ring, ft.Container(content=indicator_circle, top=15, left=15)],
+            width=150,
+            height=150,
         )
 
         status_txt = ft.Text(
@@ -695,32 +831,31 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             color=SUB_TEXT_COLOR,
             text_align="center",
         )
-        teks_countdown = ft.Text("15 seconds", color=ft.Colors.RED, size=20, weight="bold")
+        teks_countdown = ft.Text(
+            "15 seconds", color=ft.Colors.RED, size=20, weight="bold"
+        )
         box_countdown = ft.Container(
             content=ft.Row(
-                [
-                    ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24),
-                    teks_countdown
-                ],
+                [ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24), teks_countdown],
                 alignment="center",
-                spacing=10
+                spacing=10,
             ),
             bgcolor="#FEE2E2",
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
             border_radius=20,
             width=220,
-            animate=300
+            animate=300,
         )
 
         sensor_box = ft.Container(
             content=ft.Column(
                 [
-                    radar_stack, 
+                    radar_stack,
                     ft.Container(height=10),
                     status_txt,
                     sub_status_txt,
                     ft.Container(height=10),
-                    box_countdown
+                    box_countdown,
                 ],
                 alignment="center",
                 horizontal_alignment="center",
@@ -732,21 +867,24 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             border=ft.border.all(3, BLUE_SENSOR),
             border_radius=20,
             alignment=ft.Alignment(0, 0),
-            shadow=ft.BoxShadow(blur_radius=25,color=SHADOW_COLOR),
+            shadow=ft.BoxShadow(blur_radius=25, color=SHADOW_COLOR),
             animate=300,
-            margin=ft.margin.only(top=-100)
+            margin=ft.margin.only(top=-100),
         )
-     
+
         state = {"aktif": True}
 
         async def pantau_sensor_diambil():
             laci_alat = 1
-            try: 
-                with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
-                    res_laci = conn.execute("SELECT page FROM tools WHERE name = ? AND mqtt_topic = ?", (tool_name, slot_num)).fetchone()
-                    if res_laci: 
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    res_laci = conn.execute(
+                        "SELECT page FROM tools WHERE name = ? AND mqtt_topic = ?",
+                        (tool_name, slot_num),
+                    ).fetchone()
+                    if res_laci:
                         laci_alat = res_laci[0]
-            except Exception: 
+            except Exception:
                 pass
 
             buka_laci_otomatis(laci_alat)
@@ -754,9 +892,9 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             waktu_maksimal = 15
 
             while state["aktif"] and waktu_maksimal > 0:
-                #jika alat sudah diambil maka nilai menjadi 0 
+                # jika alat sudah diambil maka nilai menjadi 0
                 if status_sensor_realtime.get(kunci_unik, 1) == 0:
-                    state["aktif"] = False 
+                    state["aktif"] = False
                     indicator_circle.bgcolor = GREEN_SENSOR
                     radar_ring.color = GREEN_SENSOR
                     radar_ring.bgcolor
@@ -765,7 +903,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     status_txt.color = GREEN_SENSOR
                     sub_status_txt.value = "Waiting for tool scan..."
                     box_countdown.visible = False
-                    
+
                     page.update()
                     await asyncio.sleep(1.5)
                     nav["show_scan_tag_alat"](tool_name, slot_num)
@@ -773,11 +911,11 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
                 teks_countdown.value = f"{waktu_maksimal} seconds"
                 page.update()
-            
+
                 await asyncio.sleep(1)
                 waktu_maksimal -= 1
 
-            if state["aktif"]: 
+            if state["aktif"]:
                 state["aktif"] = False
                 print("[TIMEOUT] User timeout.")
                 nav["show_home"]()
@@ -800,44 +938,44 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         laci_saat_ini = data.get("page", 1)
 
-        #ambil jumlah slot dari config.json
+        # ambil jumlah slot dari config.json
         jumlah_slot = DRAWER_CAPACITY.get(laci_saat_ini, 16)
 
-        posisi_aktif =  get_tool_positions(name, laci_saat_ini)
+        posisi_aktif = get_tool_positions(name, laci_saat_ini)
         pos_grid = ft.GridView(expand=True, max_extent=70, spacing=10)
 
-        #Looping dinamis mulai dari 1 sampai jumlah_slot 
+        # Looping dinamis mulai dari 1 sampai jumlah_slot
         for i in range(1, jumlah_slot + 1):
             kode_pin = f"P{str(i).zfill(2)}"
 
-            #Cek database apakah slot sesuai dengan alat yang didaftarkan di database 
+            # Cek database apakah slot sesuai dengan alat yang didaftarkan di database
             is_milik_alat = kode_pin in posisi_aktif
 
-            #Kode unik untuk masing2 alat untuk menentukan posisi dan laci dimana alat berada 
+            # Kode unik untuk masing2 alat untuk menentukan posisi dan laci dimana alat berada
             kode_unik = f"{laci_saat_ini}_{kode_pin}"
 
-            #mengecek apakah alat terdeteksi sensor inframerah atau tidak 
-            is_fisik_ada = (status_sensor_realtime.get(kode_unik, 1) == 1)
+            # mengecek apakah alat terdeteksi sensor inframerah atau tidak
+            is_fisik_ada = status_sensor_realtime.get(kode_unik, 1) == 1
 
-            #Kotak akan aktif jika alat terdeteksi sensor inframerah 
+            # Kotak akan aktif jika alat terdeteksi sensor inframerah
             is_available = is_milik_alat and is_fisik_ada
 
-            if is_available: 
-                #kotak aktif jika ada bendanya 
+            if is_available:
+                # kotak aktif jika ada bendanya
                 kotak = ft.Container(
                     content=ft.Text(str(i), weight="bold", color=TEXT_COLOR),
-                    alignment=ft.Alignment(0,0),
+                    alignment=ft.Alignment(0, 0),
                     bgcolor="white",
                     border=ft.border.all(2, GREEN_SENSOR),
                     border_radius=10,
                     ink=True,
-                    on_click= lambda e, p=kode_pin: show_visual_sensor_flow(name, p),
+                    on_click=lambda e, p=kode_pin: show_visual_sensor_flow(name, p),
                 )
-            else: 
-                #Kotak abu-abu jika bukan barangnya 
+            else:
+                # Kotak abu-abu jika bukan barangnya
                 kotak = ft.Container(
                     content=ft.Text(str(i), weight="bold", color="grey"),
-                    alignment=ft.Alignment(0,0),
+                    alignment=ft.Alignment(0, 0),
                     bgcolor="#E5E7EB",
                     border=ft.border.all(2, "#D1D5DB"),
                     border_radius=10,
@@ -848,11 +986,17 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             build_standard_layout(
                 ft.Column(
                     [
-                        ft.Text(f"Position for {name}", size=32, weight="bold", color=TEXT_COLOR),
+                        ft.Text(
+                            f"Position for {name}",
+                            size=32,
+                            weight="bold",
+                            color=TEXT_COLOR,
+                        ),
                         ft.Container(height=20),
                         ft.Container(content=pos_grid, height=300, width=600),
                     ],
-                    horizontal_alignment="center", alignment="center",
+                    horizontal_alignment="center",
+                    alignment="center",
                 ),
                 back_func=nav["show_peminjaman_page"],
             )
@@ -919,25 +1063,32 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
                     if tipe_akses.lower() == "user":
                         from db_manager import cek_koin_user
+
                         sisa_koin = cek_koin_user(nama_user)
 
                         if sisa_koin <= 0:
                             visual_card.border = ft.border.all(3, "red")
-                            status_text.value = f"Akses ditolak! \nKoin Anda Habis (Sisa: 0)"
+                            status_text.value = (
+                                f"Akses ditolak! \nKoin Anda Habis (Sisa: 0)"
+                            )
                             status_text.color = "red"
                             page.update()
                             await asyncio.sleep(3.0)
                             keluar_halaman(back_destination_func)
-                            return # stop proses disini 
+                            return  # stop proses disini
                     visual_card.border = ft.border.all(3, GREEN_SENSOR)
 
-                    status_text.value = f"Akses diberikan \nHalo {nama_user} (Koin: {sisa_koin})" if tipe_akses.lower() == "user" else f"Akses diberikan! \Halo {nama_user}"
+                    status_text.value = (
+                        f"Akses diberikan \nHalo {nama_user} (Koin: {sisa_koin})"
+                        if tipe_akses.lower() == "user"
+                        else f"Akses diberikan! \Halo {nama_user}"
+                    )
 
                     status_text.color = GREEN_SENSOR
                     page.update()
                     await asyncio.sleep(1.0)
                     keluar_halaman(next_destination_func)
-                    
+
                 else:
                     visual_card.border = ft.border.all(3, "red")
                     status_text.value = "Akses Ditolak!\nKartu tidak sesuai hak akses."
