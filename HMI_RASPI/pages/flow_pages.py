@@ -209,18 +209,17 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         box_countdown = ft.Container(
             content=ft.Row(
                 [
-                    ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24, weight="bold"),
+                    ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24),
                     teks_countdown
                 ],
-                alignment="center",
-                spacing=10,
-                bgcolor="#FEE2E2",
-                padding=ft.padding.symmetric(horizontal=20, vertical=10),
-                border_radius=20, 
-                width=220,
-                animate=300
-            )
-
+            ),
+            alignment="center",
+            spacing=10,
+            bgcolor="#FEE2E2",
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            border_radius=20, 
+            width=220,
+            animate=300
         )
         sensor_box = ft.Container(
             content=ft.Column(
