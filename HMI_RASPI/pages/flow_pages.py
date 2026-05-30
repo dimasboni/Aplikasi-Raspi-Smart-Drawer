@@ -663,23 +663,80 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             alignment=ft.Alignment(0, 0),
             animate=300,
         )
-        sensor_box = ft.Container(
-            content=indicator_circle,
-            width=800,
-            height=350,
-            bgcolor="#EBF3FF",
-            border_radius=20,
-            alignment=ft.Alignment(0, 0),
-            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR),
-            animate=300,
+
+        radar_ring = ft.ProgressRing(
+            width = 150, 
+            height = 150,
+            stroke_width = 8, 
+            color = BLUE_SENSOR, 
+            bgcolor = "E3F2FD"
         )
+
+        radar_stack = ft.Stack(
+            [
+                radar_ring, 
+                ft.Container(content=indicator_circle, top=15, left=15)    
+            ],
+            width=150, 
+            height=150
+        )
+
         status_txt = ft.Text(
-            "MENUNGGU SENSOR IR...\nSilakan ambil barang di laci...",
-            size=18,
+            f"DETECT {tool_name.upper()}...",
+            size=22,
+            color=BLUE_SENSOR,
+            weight="bold",
+            text_align="center",
+        )
+
+        sub_status_txt = ft.Text(
+            "Drawer is open. Please take the tool and close the drawer.",
+            size=16,
             color=SUB_TEXT_COLOR,
             text_align="center",
         )
-        teks_countdown = ft.Text("Waktu tersisa: 15 detik", color="red", size=20, weight="bold")
+        teks_countdown = ft.Text("15 seconds", color=ft.Colors.RED, size=20, weight="bold")
+        box_countdown = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24),
+                    teks_countdown
+                ],
+                alignment="center",
+                spacing=10
+            ),
+            bgcolor="#FEE2E2",
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            border_radius=20,
+            width=220,
+            animate=300
+        )
+
+        sensor_box = ft.Container(
+            content=ft.Column(
+                [
+                    radar_stack, 
+                    ft.Container(height=10),
+                    status_txt,
+                    sub_status_txt,
+                    ft.Container(height=10),
+                    box_countdown
+                ],
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            width=700,
+            height=420,
+            bgcolor="white",
+            border=ft.border.all(3, BLUE_SENSOR),
+            border_radius=20,
+            alignment=ft.Alignment(0, 0),
+            shadow=ft.BoxShadow(blur_radius=25,color=SHADOW_COLOR),
+            animate=300,
+            margin=ft.margin.only(top=-50)
+        )
+     
         state = {"aktif": True}
 
         async def pantau_sensor_diambil():
@@ -693,23 +750,28 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 pass
 
             buka_laci_otomatis(laci_alat)
-
             kunci_unik = f"{laci_alat}_{slot_num}"
             waktu_maksimal = 15
+
             while state["aktif"] and waktu_maksimal > 0:
                 #jika alat sudah diambil maka nilai menjadi 0 
                 if status_sensor_realtime.get(kunci_unik, 1) == 0:
                     state["aktif"] = False 
                     indicator_circle.bgcolor = GREEN_SENSOR
-                    sensor_box.bgcolor = "#E8F5E9"
-                    status_txt.value = "Barang Terdeteksi Diambil!"
+                    radar_ring.color = GREEN_SENSOR
+                    radar_ring.bgcolor
+                    sensor_box.border = ft.border.all(3, GREEN_SENSOR)
+                    status_txt.value = "Tool has been taken!"
                     status_txt.color = GREEN_SENSOR
+                    sub_status_txt.value = "Waiting for tool scan..."
+                    box_countdown.visible = False
+                    
                     page.update()
                     await asyncio.sleep(1.5)
                     nav["show_scan_tag_alat"](tool_name, slot_num)
                     return
 
-                teks_countdown.value = f"Waktu tersisa: {waktu_maksimal} detik"
+                teks_countdown.value = f"{waktu_maksimal} seconds"
                 page.update()
             
                 await asyncio.sleep(1)
@@ -717,13 +779,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
             if state["aktif"]: 
                 state["aktif"] = False
-                print("[TIMEOUT] User terlalu lama, batal pinjam, kembali ke Home.")
+                print("[TIMEOUT] User timeout.")
                 nav["show_home"]()
 
         page.add(
             build_standard_layout(
                 ft.Column(
-                    [sensor_box, ft.Container(height=10), status_txt, teks_countdown],
+                    [sensor_box],
                     alignment="center",
                     horizontal_alignment="center",
                 )
