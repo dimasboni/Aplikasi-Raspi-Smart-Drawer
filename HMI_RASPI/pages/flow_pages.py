@@ -461,7 +461,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             on_blur=lambda e: input_tag.focus() if state["aktif"] else None,
         )
 
-        list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=280)
+        list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=220)
         teks_indikator = ft.Text(f"0/{total_pinjaman} tools scanned", weight="bold", color=SUB_TEXT_COLOR, size=16)
 
         btn_confirm = create_filled_button(
@@ -590,7 +590,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
-
+        TINGGI_PANEL = 320
         # 🔥 Menggabungkan desain Split-Screen dengan UI Aslimu
         scan_area = ft.Container(
             content=ft.Column(
@@ -615,7 +615,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 alignment="center", horizontal_alignment="center", spacing=5
             ),
             width=300, 
-            height=400, # Sedikit diperpanjang agar muat tombol dan status_text
+            height=TINGGI_PANEL, # Sedikit diperpanjang agar muat tombol dan status_text
             padding=20, 
             bgcolor="#EFF6FF",
             border_radius=20, 
@@ -635,13 +635,14 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 
                 # Panel Kanan (Daftar Kapsul & Tombol Konfirmasi ui_komponen)
                 ft.Container(
-                    height=400,
+                    height=TINGGI_PANEL,
                     content=ft.Column(
                         [
-                            teks_indikator, 
-                            list_scanned_ui, 
+                            ft.Column(
+                                [teks_indikator, list_scanned_ui,]
+                            ), 
                             ft.Container(height=5), # Jarak kecil sebelum tombol
-                            ft.Container(content=btn_confirm, alignment=ft.Alignment(0,0)) # Tengahkan tombol
+                            ft.Container(content=btn_confirm, alignment=ft.Alignment(0,0), padding=ft.padding.only(top=-8)) # Tengahkan tombol
                         ], 
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
@@ -656,11 +657,12 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         content_card = ft.Container(
             content=main_layout,
             width=850, 
-            padding=ft.padding.only(left=40, right=40, top=40, bottom=20), 
+            height=380,
+            padding=ft.padding.only(left=40, right=40, top=40, bottom=10), 
             bgcolor="white",
             border_radius=20, 
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
-            margin=ft.margin.only(top=10) # Tarik agak ke atas agar pas di layar HMI
+            margin=ft.margin.only(top=-130) # Tarik agak ke atas agar pas di layar HMI
         )
 
         update_ui() # Render antrean pertama kali (0 / N)
