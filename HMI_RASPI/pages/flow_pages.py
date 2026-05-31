@@ -443,9 +443,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW SCAN KEMBALI (scan RFID alat saat pengembalian)
     # ------------------------------------------------------------------
-    def show_scan_kembali(borrowed_tools):
+    def show_scan_kembali(borrowed):
         page.clean()
-        scanned_items = []
+        scanned_tools = []
+        state = {"aktif": True}
+        borrowed_names = [b["name"] if isinstance(b, dict) else b for b in borrowed]
+        total_pinjaman = len(borrowed_names)
+
         input_tag = ft.TextField(
             autofocus=True,
             width=1,
@@ -454,88 +458,120 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             color="transparent",
             bgcolor="transparent",
             cursor_color="transparent",
-            on_blur=lambda e: input_tag.focus(),
+            on_blur=lambda e: input_tag.focus() if state["aktif"] else None,
         )
-        status_text = ft.Text(
-            "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold"
-        )
-        scanned_list_ui = ft.ListView(spacing=10, height=180)
+
+        list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=280)
+        teks_indikator = ft.Text(f"0/{total_pinjaman} tools scanned", weight="bold", color=SUB_TEXT_COLOR, size=16)
+
         btn_confirm = create_filled_button(
             "Selesai & Konfirmasi",
-            "#10B981",
-            lambda _: show_konfirmasi_kembali(scanned_items),
+            GREEN_SENSOR,
+            lambda _: [state.update({"aktif": False}), show_konfirmasi_kembali(scanned_tools)],
             width=600,
             height=50,
             disabled=True,
         )
 
         def update_ui():
-            scanned_list_ui.controls.clear()
-            for item in scanned_items:
-                scanned_list_ui.controls.append(
+            list_scanned_ui.controls.clear()
+            teks_indikator.value = f"Alat Terverifikasi ({len(scanned_tools)} / {total_pinjaman})"
+            btn_confirm.disabled = len(scanned_tools) == 0
+            
+            # 🔥 LOGIKA EMPTY STATE (RUANG HAMPA) 🔥
+            if not scanned_tools:
+                list_scanned_ui.controls.append(
                     ft.Container(
-                        content=ft.Row(
+                        content=ft.Column(
                             [
-                                ft.Text("✅", size=18),
-                                ft.Text(
-                                    item, weight="bold", color=TEXT_COLOR, expand=True
-                                ),
-                                ft.Container(
-                                    content=ft.Text(
-                                        "Terverifikasi", size=10, color="white"
-                                    ),
-                                    bgcolor="#10B981",
-                                    padding=ft.padding.symmetric(
-                                        horizontal=8, vertical=4
-                                    ),
-                                    border_radius=10,
-                                ),
-                            ]
+                                ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, size=60, color="#CBD5E1"), # Ikon laci abu-abu elegan
+                                ft.Text("Belum ada alat yang di-scan...", size=14, color=SUB_TEXT_COLOR, italic=True),
+                                ft.Text("Menunggu input dari reader.", size=12, color=SUB_TEXT_COLOR)
+                            ],
+                            alignment="center", horizontal_alignment="center", spacing=5
                         ),
-                        bgcolor="#F0FDF4",
-                        padding=15,
-                        border_radius=10,
-                        border=ft.border.all(1, "#BBF7D0"),
-                        width=580,
+                        height=200, alignment=ft.Alignment(0, 0) # Mengisi bagian tengah dengan pas
                     )
                 )
-            btn_confirm.disabled = len(scanned_items) == 0
+            # 🔥 LOGIKA KAPSUL ALAT (JIKA ADA ISINYA) 🔥
+            else:
+                for idx, t in enumerate(scanned_tools):
+                    list_scanned_ui.controls.append(
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    # Kapsul Angka Urutan (Kiri)
+                                    ft.Container(
+                                        content=ft.Text(str(idx + 1), weight="bold", color="white"),
+                                        width=32, height=32, bgcolor="#94A3B8", border_radius=16,
+                                        alignment=ft.Alignment(0, 0)
+                                    ),
+                                    # Nama Alat (Tengah)
+                                    ft.Text(t["name"], weight="bold", size=18, color=TEXT_COLOR, expand=True),
+                                    # Badge Laci & Pin (Kanan)
+                                    ft.Row(
+                                        [
+                                            ft.Container(
+                                                content=ft.Text(f"📦 Laci {t['laci']}", size=12, weight="bold", color="#1E293B"),
+                                                bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
+                                            ),
+                                            ft.Container(
+                                                content=ft.Text(f"📍 {t['pin']}", size=12, weight="bold", color="#1E293B"),
+                                                bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
+                                            ),
+                                        ],
+                                        spacing=8
+                                    )
+                                ],
+                                alignment="spaceBetween"
+                            ),
+                            padding=15, bgcolor="white", border_radius=12,
+                            border=ft.border.all(1, "#E2E8F0")
+                        )
+                    )
             page.update()
 
+        status_text = ft.Text(
+            "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center"
+        )
+
         def proses_scan(e, simu_uid=None):
+            if not state["aktif"]: return
+            
             uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
             input_tag.value = ""
-            page.update()
+            
+            if not uid_tag:
+                page.update()
+                input_tag.focus()
+                return
+
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                     res = (
                         conn.cursor()
                         .execute(
                             "SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?",
-                            (uid_tag,),
+                            (uid_tag,)
                         )
                         .fetchone()
                     )
+                    
                 if res:
                     tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
-                    if res[0] in borrowed_tools:
-                        if tool_name in borrowed_tools:
-                            sudah_ada = any(
-                                item["pin"] == tool_pin for item in scanned_items
-                            )
-                            if not sudah_ada:
-                                scanned_items.append(
-                                    {
-                                        "name": tool_name,
-                                        "pin": tool_pin,
-                                        "laci": tool_laci,
-                                    }
-                                )
-                                status_text.value = (
-                                    f"Berhasil: {tool_name} (Asal:{tool_pin})"
-                                )
-                                status_text.color = "#10B981"
-                                update_ui()
+                    
+                    # Kita cek ke borrowed_names yang sudah diekstrak di awal
+                    if tool_name in borrowed_names:
+                        sudah_ada = any(item["pin"] == tool_pin for item in scanned_tools)
+                        if not sudah_ada:
+                            scanned_tools.append({
+                                "name": tool_name,
+                                "pin": tool_pin,
+                                "laci": tool_laci,
+                            })
+                            status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
+                            status_text.color = "#10B981" # Hijau
+                            update_ui()
                         else:
                             status_text.value = f"Sudah di-scan: {tool_name}"
                             status_text.color = "orange"
@@ -545,70 +581,106 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 else:
                     status_text.value = "Tag Tidak Dikenal!"
                     status_text.color = "red"
-            except Exception:
-                pass
+                    
+            except Exception as err:
+                print("DB Error:", err)
+                
             page.update()
             input_tag.focus()
 
+        # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
-        top_card = ft.Container(
-            content=ft.Row(
+
+        # 🔥 Menggabungkan desain Split-Screen dengan UI Aslimu
+        scan_area = ft.Container(
+            content=ft.Column(
                 [
-                    ft.Container(
-                        content=ft.Image(src="/scanrfid.png", width=60, height=60),
-                        padding=10,
-                        bgcolor="#EFF6FF",
-                        border_radius=15,
-                    ),
-                    ft.Column(
-                        [
-                            ft.Text(
-                                "Area Scan Aktif",
-                                size=20,
-                                weight="bold",
-                                color=TEXT_COLOR,
-                            ),
-                            status_text,
-                            create_filled_button(
-                                "Simulasi Scan Tag (2616388389)",
-                                "#F59E0B",
-                                lambda coba: proses_scan(coba, simu_uid="2616388389"),
-                                height=35,
-                            ),
-                        ],
-                        spacing=5,
+                    ft.Icon(ft.Icons.WIFI_TETHERING, size=70, color=ft.Colors.BLUE),
+                    ft.Text("Area Scan Aktif", size=20, weight="bold", color=TEXT_COLOR),
+                    
+                    # INI DIA TEKS FEEDBACK ASLIMU!
+                    status_text, 
+                    
+                    ft.Text("Tempelkan tag RFID\nalat pada reader", size=14, color=SUB_TEXT_COLOR, text_align="center"),
+                    ft.Container(height=5),
+                    
+                    # TOMBOL SIMULASI ASLIMU!
+                    create_filled_button(
+                        "Simulasi Scan",
+                        "#F59E0B",
+                        lambda coba: proses_scan(coba, simu_uid="2616388389"),
+                        height=35,
                     ),
                 ],
-                alignment="center",
-                spacing=20,
+                alignment="center", horizontal_alignment="center", spacing=5
             ),
-            bgcolor="white",
-            padding=20,
-            border_radius=15,
-            width=600,
-            border=ft.border.all(2, BLUE_SENSOR),
-            shadow=ft.BoxShadow(blur_radius=15, color=SHADOW_COLOR),
-            on_click=lambda _: input_tag.focus(),
+            width=300, 
+            height=400, # Sedikit diperpanjang agar muat tombol dan status_text
+            padding=20, 
+            bgcolor="#EFF6FF",
+            border_radius=20, 
+            border=ft.border.all(3, BLUE_SENSOR),
+            alignment=ft.Alignment(0, 0),
+            on_click=lambda _: input_tag.focus() if state["aktif"] else None
         )
-        content = ft.Column(
+        # ==========================================
+        # STEP 5: GABUNGAN LAYOUT UTAMA (SPLIT SCREEN)
+        # ==========================================
+        main_layout = ft.Row(
             [
-                top_card,
-                ft.Container(height=10),
-                ft.Text("Alat Terverifikasi:", weight="bold", color="grey"),
-                ft.Container(content=scanned_list_ui, height=180),
-                btn_confirm,
-                input_tag,
+                # Panel Kiri (Mesin Scan & Teks Status Aslimu)
+                scan_area,
+                
+                ft.Container(width=30), # Spacer pemisah di tengah
+                
+                # Panel Kanan (Daftar Kapsul & Tombol Konfirmasi ui_komponen)
+                ft.Container(
+                    height=400,
+                    content=ft.Column(
+                        [
+                            teks_indikator, 
+                            list_scanned_ui, 
+                            ft.Container(height=5), # Jarak kecil sebelum tombol
+                            ft.Container(content=btn_confirm, alignment=ft.Alignment(0,0)) # Tengahkan tombol
+                        ], 
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    ),
+                    expand=True
+                )
             ],
-            horizontal_alignment="center",
             alignment="center",
-            margin=ft.margin.only(top=-150),
+            vertical_alignment="start"
         )
+
+        # Wrapper kotak besar putih agar HMI terlihat elegan
+        content_card = ft.Container(
+            content=main_layout,
+            width=850, 
+            padding=ft.padding.only(left=40, right=40, top=40, bottom=20), 
+            bgcolor="white",
+            border_radius=20, 
+            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=10) # Tarik agak ke atas agar pas di layar HMI
+        )
+
+        update_ui() # Render antrean pertama kali (0 / N)
+
+        # Cetak menggunakan build_standard_layout andalanmu
         page.add(
-            build_standard_layout(content, back_func=nav["show_list_pinjaman_user"])
+            build_standard_layout(
+                content_card,
+                back_func=lambda _: [state.update({"aktif": False}), nav["show_list_pinjaman_user"]()]
+            ),
+            input_tag # Masukkan textfield gaib ke dalam layar
         )
-        threading.Thread(
-            target=lambda: [time.sleep(0.5), input_tag.focus(), page.update()]
-        ).start()
+        
+        # Thread penjaga kursor (Persis seperti kodingan aslimu)
+        def keep_focus():
+            time.sleep(0.5)
+            if state["aktif"]:
+                input_tag.focus()
+                page.update()
+        threading.Thread(target=keep_focus).start()
 
     # ------------------------------------------------------------------
     # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
