@@ -590,7 +590,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
-        TINGGI_PANEL = 320
+        TINGGI_PANEL = 380
         # 🔥 Menggabungkan desain Split-Screen dengan UI Aslimu
         scan_area = ft.Container(
             content=ft.Column(
