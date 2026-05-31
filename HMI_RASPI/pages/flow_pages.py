@@ -590,7 +590,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
-        TINGGI_PANEL = 380
+        TINGGI_PANEL = 500
         # 🔥 Menggabungkan desain Split-Screen dengan UI Aslimu
         scan_area = ft.Container(
             content=ft.Column(
@@ -657,12 +657,12 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         content_card = ft.Container(
             content=main_layout,
             width=850, 
-            height=380,
-            padding=ft.padding.only(left=40, right=40, top=40, bottom=10), 
+            height=430,
+            padding=ft.padding.only(left=40, right=40, top=40, bottom=20), 
             bgcolor="white",
             border_radius=20, 
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
-            margin=ft.margin.only(top=-130) # Tarik agak ke atas agar pas di layar HMI
+            margin=ft.margin.only(top=-90) # Tarik agak ke atas agar pas di layar HMI
         )
 
         update_ui() # Render antrean pertama kali (0 / N)
