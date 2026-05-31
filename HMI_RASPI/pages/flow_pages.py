@@ -77,7 +77,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     ft.ProgressRing(
                         width=25, height=25, color=GREEN_SENSOR, stroke_width=3
                     ),
-                    ft.Text("Kembali ke layar utama...", size=12, color="grey"),
+                    ft.Text("Returning to main screen...", size=12, color="grey"),
                 ],
                 alignment="center",
                 horizontal_alignment="center",

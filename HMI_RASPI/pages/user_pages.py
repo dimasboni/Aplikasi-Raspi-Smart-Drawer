@@ -12,9 +12,11 @@ Cara pemakaian:
     register_user_pages(page, session_data, nav)
 """
 
+import asyncio
+
 import flet as ft
 
-from config import TEXT_COLOR, SHADOW_COLOR
+from config import BLUE_SENSOR, SUB_TEXT_COLOR, TEXT_COLOR, SHADOW_COLOR
 from db_manager import get_tools_from_db, get_borrowed_tools
 from ui_komponen import (
     create_filled_button,
@@ -139,7 +141,65 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
 
     def show_list_pinjaman_user(e=None):
         page.clean()
-        borrowed = get_borrowed_tools(session_data["user_now"])
+        nama_user = session_data.get("user_now", "Unknown")
+        borrowed = get_borrowed_tools(nama_user)
+
+        if not borrowed: 
+            empty_card = ft.Container(
+                content= ft.Column(
+                    [
+                        ft.Container(
+                            content=ft.Image(src="/empty.png", width=80, height=80),
+                            width=110, height=110, 
+                            bgcolor="#EFF6FF",
+                            border_radius=55,
+                            alignment=ft.Alignment(0, 0),
+                            border=ft.border.all(4, "#DBEAFE")
+                        ),
+                        
+                        ft.Text("Your borrowing list is empty!", size=28, weight="bold", color=BLUE_SENSOR, text_align="center"),
+
+                        ft.Container(
+                             ft.Text(
+                            f"{nama_user.upper()}", size=14, weight="bold", color="white"
+                        ),
+                        bgcolor="#1E293B",
+                        padding=ft.padding.symmetric(horizontal=15, vertical=5),
+                        border_radius=20
+                        ),
+                        ft.Container(height=10),
+                        ft.Row(
+                            [
+                                ft.ProgressRing(width=25, height=25, color=BLUE_SENSOR, stroke_width=3),
+                                ft.Text("Returning to Home...", size=12, color=SUB_TEXT_COLOR, italic=True),
+                            ],
+                            alignment="center",
+                            spacing=15
+                        )
+                    ],
+                    alignment="center",
+                    horizontal_alignment="center",
+                    spacing = 10
+                ),
+                width=520, 
+                height=400, 
+                padding=40, 
+                bgcolor="white",
+                border_radius=20, 
+                shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+                alignment=ft.Alignment(0, 0),
+                margin=ft.margin.only(top=-130)
+            )
+            page.add(build_standard_layout(ft.Container(content=empty_card, alignment=ft.Alignment(0, 0))))
+
+            async def auto_back():
+                await asyncio.sleep(4.0)
+                nav["show_home"]()
+            page.run_task(auto_back)
+            return
+        
+        #JIKA ADA ALAT YANG DIPINJAM TAMPILKAN DAFTARNYA 
+
         state = {"page": 0}
         items_per_page = 4
         list_container = ft.Column(spacing=10, horizontal_alignment="center")
