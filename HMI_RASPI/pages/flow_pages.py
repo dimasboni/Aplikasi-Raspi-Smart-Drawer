@@ -21,6 +21,7 @@ import asyncio
 import time
 import threading
 import sqlite3
+from tkinter import dialog
 
 import flet as ft
 
@@ -464,11 +465,68 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=220)
         teks_indikator = ft.Text(f"0/{total_pinjaman} tools scanned", weight="bold", color=SUB_TEXT_COLOR, size=16)
 
+        def tampilkan_dialog_konfirmasi(e):
+            list_dialog = ft.Column(spacing=5, height=150, scroll=ft.ScrollMode.AUTO)
+            for idx, t in enumerate(scanned_tools):
+                list_dialog.controls.append(
+                    ft.Container(
+                        content=ft.Row(
+                            [
+                                ft.Text(f"{idx+1}.", weight="bold", color=SUB_TEXT_COLOR),
+                                ft.Text(t["name"], weight="bold", expand=True, color=TEXT_COLOR),
+                                ft.Container(
+                                    content=ft.Text(f"Drawer {t['laci']} - {t['pin']}", size=10, color="white", weight="bold"),
+                                    bgcolor=BLUE_SENSOR, padding=ft.padding.symmetric(horizontal=8, vertical=4), border_radius=10
+                                )
+                            ]
+                        ),
+                        bgcolor="#F1F5F9", padding =10, border_radius=8, border=ft.border.all(1, "black")
+                    )
+                )
+            def tutup_dialog(e):
+                dialog.open=False
+                page.update()
+                input_tag.focus()
+
+            def lanjut_buka_laci(e):
+                dialog.open = False
+                state["aktif"]=False
+                page.update()
+                pin_tujuan_pertama = scanned_tools[0]["pin"]
+                nav["show_visual_sensor_kembali"](scanned_tools, 0, pin_tujuan_pertama)
+
+            dialog = ft.AlertDialog(
+                modal=True,
+                bgcolor="white",
+                title=ft.Text("Confirm Return", weight="bold", color=TEXT_COLOR),
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Text("Are you sure you want to return the following tools?", size=14, color=SUB_TEXT_COLOR),
+                            ft.Container(height=10),
+                            list_dialog
+                        ],
+                        tight=True
+                    ),
+                    width=400
+                ),
+                actions=[
+                    create_filled_button("Cancel", "red", tutup_dialog, height=40),
+                    create_filled_button("Yes, Open Drawer", GREEN_SENSOR, lanjut_buka_laci, height=40)
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                shape=ft.RoundedRectangleBorder(radius=15)
+            )
+
+            page.overlay.append(dialog)
+            dialog.open = True
+            page.update()
+
         btn_confirm = create_filled_button(
             "Selesai & Konfirmasi",
             GREEN_SENSOR,
-            lambda _: [state.update({"aktif": False}), show_konfirmasi_kembali(scanned_tools)],
-            width=600,
+            tampilkan_dialog_konfirmasi,
+            width=350,
             height=50,
             disabled=True,
         )
