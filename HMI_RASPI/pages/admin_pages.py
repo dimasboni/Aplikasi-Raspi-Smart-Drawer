@@ -1024,6 +1024,19 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 page.update()
                 return
             
+            uid_tag = input_rfid.value.strip()
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    cursor = conn.cursor()
+                    res = cursor.execute("SELECT name FROM tools WHERE rfid_tag_uid = ?", (uid_tag,)).fetchone()
+                    if res:
+                        notif_text.value = f"❌ Tag RFID sudah terdaftar untuk alat '{res[0]}'!"
+                        notif_text.color = "red"
+                        page.update()
+                        return # 🔥 Stop eksekusi! Laci batal dibuka.
+            except Exception as ex:
+                print(f"Error cek duplikat RFID: {ex}")
+            
             dialog_tunggu_sensor = ft.AlertDialog(
                 modal=True,
                 title=ft.Text("Waiting for Sensor....", weight="bold", color="black"),

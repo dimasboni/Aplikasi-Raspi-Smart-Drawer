@@ -21,14 +21,22 @@ if GPIO_AVAILABLE:
     pin_magnet = {
         1: 24,      
         2: 23,
-        3: 17,
+        3: 27,
         4: 26
+    }
+
+    pin_buzzer = {
+        1: 17
     }
     
     for pin in  pin_magnet.values():
     #pin dimatikan dulu untuk menjaga sisa listrik yang ada 
         GPIO.setup(pin, GPIO.OUT)
         GPIO.output(pin, GPIO.HIGH)
+
+    for pin in pin_buzzer.values():
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, GPIO.LOW)
 
 else:
     pin_magnet = {
@@ -37,7 +45,24 @@ else:
         3: 24,
         4: 25
     }
+    pin_buzzer = {
+        1: 17
+    }
 
+def bunyikan_buzzer_error(durasi=1.5):
+    def _bunyi():
+        target_pin = pin_buzzer.get(1)
+        print(f"🚨 BUZZER MENYALA di PIN {target_pin} selama {durasi} detik!")
+        if GPIO_AVAILABLE:
+            GPIO.output(target_pin, GPIO.HIGH)
+            time.sleep(durasi)
+            GPIO.output(target_pin, GPIO.LOW)
+        else:
+            time.sleep(durasi)
+            print("🚨 BUZZER MATI (Simulasi)")
+            
+    threading.Thread(target=_bunyi, daemon=True).start()
+    
 # Fungsi membuka laci 
 def membuka_laci(nomor_laci):
     pin_target = pin_magnet.get(nomor_laci)
