@@ -26,7 +26,7 @@ import asyncio
 
 import flet as ft
 from PIL import Image as PILImage
-from hardware_manager import buka_laci_otomatis
+from hardware_manager import buka_laci_otomatis, bunyikan_buzzer_error
 from sensor_manager import status_sensor_realtime
 
 from config import (
@@ -1003,6 +1003,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         input_rfid.on_submit = proses_rfid
 
         def simpan_alat_baru(e):
+            bunyikan_buzzer_error(1.5) #Bunyi buzzer error sebagai pancingan untuk segera meletakkan alat di sensor, bisa disesuaikan durasinya
             if not input_nama.value.strip():
                 notif_text.value = "❌ Nama alat tidak boleh kosong!"
                 page.update()
