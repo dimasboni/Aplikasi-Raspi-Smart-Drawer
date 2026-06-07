@@ -24,7 +24,7 @@ def cek_koin_user(username):
         print(f"🚀 DEBUG API: Menembak ke -> {target_url}")
         
         # 2. Kirim ke server Niko
-        response = requests.get(target_url, timeout=3)
+        response = requests.get(target_url, timeout=10)
         
         # 3. Print apa jawaban server Niko ke terminal!
         print(f"📡 DEBUG API: Status Jawaban Niko = {response.status_code}")

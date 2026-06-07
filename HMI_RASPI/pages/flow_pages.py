@@ -39,7 +39,7 @@ from db_manager import (
     get_borrowed_tools,
     get_tool_positions,
 )
-from sensor_manager import status_sensor_realtime
+from sensor_manager import status_sensor_realtime, target_expected
 from ui_komponen import create_filled_button, build_standard_layout
 from hardware_manager import buka_laci_otomatis
 
@@ -261,22 +261,23 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             kunci_unik = f"{laci_tujuan}_{pin_terpilih}"
             waktu_maksimal = 15
 
+            # 🔥 TITIP PESAN
+            target_expected["laci"] = int(laci_tujuan)
+            target_expected["pin"] = pin_terpilih
+            target_expected["action"] = "TARUH"
+
             while state["aktif"] and waktu_maksimal > 0:
                 if status_sensor_realtime.get(kunci_unik, 0) == 1:
                     state["aktif"] = False
-                    indicator_circle.bgcolor = GREEN_SENSOR
-                    radar_ring.color = GREEN_SENSOR
-                    radar_ring.bgcolor = "#E8F5E9"
-                    sensor_box.border = ft.border.all(3, GREEN_SENSOR)
-                    status_txt.value = f"{tool_name.upper()} Detected in Position {pin_terpilih}!"
-                    status_txt.color = GREEN_SENSOR
-                    sub_status_txt.value = "Processing return..."
-                    box_countdown.visible = False
-                    page.update()
+                    # 🔥 RESET PESAN
+                    target_expected["laci"] = None
+                    target_expected["pin"] = None
+                    target_expected["action"] = None
                     
+                    indicator_circle.bgcolor = GREEN_SENSOR
+                    # ... (sisa kodemu tetap sama) ...
                     simpan_log_pengembalian(session_data["user_now"], tool_name)
                     await asyncio.sleep(2.0)
-
                     show_kembali_position_selection(scanned_tools, index + 1)
                     return
                 
@@ -287,6 +288,10 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 
             if state["aktif"]:
                 state["aktif"] = False
+                # 🔥 RESET PESAN
+                target_expected["laci"] = None
+                target_expected["pin"] = None
+                target_expected["action"] = None
                 print("[TIMEOUT] User timeout on return.")
                 nav["show_home"]()
 
@@ -1040,32 +1045,35 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             kunci_unik = f"{laci_alat}_{slot_num}"
             waktu_maksimal = 15
 
+            # 🔥 TITIP PESAN
+            target_expected["laci"] = int(laci_alat)
+            target_expected["pin"] = slot_num
+            target_expected["action"] = "AMBIL"
+
             while state["aktif"] and waktu_maksimal > 0:
-                # jika alat sudah diambil maka nilai menjadi 0
                 if status_sensor_realtime.get(kunci_unik, 1) == 0:
                     state["aktif"] = False
-                    indicator_circle.bgcolor = GREEN_SENSOR
-                    radar_ring.color = GREEN_SENSOR
-                    radar_ring.bgcolor = "#E8F5E9"
-                    sensor_box.border = ft.border.all(3, GREEN_SENSOR)
-                    status_txt.value = "Tool has been taken!"
-                    status_txt.color = GREEN_SENSOR
-                    sub_status_txt.value = "Waiting for tool scan..."
-                    box_countdown.visible = False
+                    # 🔥 RESET PESAN
+                    target_expected["laci"] = None
+                    target_expected["pin"] = None
+                    target_expected["action"] = None
 
-                    page.update()
-                    await asyncio.sleep(1.5)
+                    indicator_circle.bgcolor = GREEN_SENSOR
+                    # ... (sisa kodemu tetap sama) ...
                     nav["show_scan_tag_alat"](tool_name, slot_num)
                     return
 
                 teks_countdown.value = f"{waktu_maksimal} seconds"
                 page.update()
-
                 await asyncio.sleep(1)
                 waktu_maksimal -= 1
 
             if state["aktif"]:
                 state["aktif"] = False
+                # 🔥 RESET PESAN
+                target_expected["laci"] = None
+                target_expected["pin"] = None
+                target_expected["action"] = None
                 print("[TIMEOUT] User timeout.")
                 nav["show_home"]()
 

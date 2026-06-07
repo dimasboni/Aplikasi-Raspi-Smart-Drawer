@@ -27,7 +27,7 @@ import asyncio
 import flet as ft
 from PIL import Image as PILImage
 from hardware_manager import buka_laci_otomatis, bunyikan_buzzer_error
-from sensor_manager import status_sensor_realtime
+from sensor_manager import status_sensor_realtime, target_expected
 
 from config import (
     BG_COLOR,
@@ -1063,18 +1063,28 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 pin_terpilih = dd_pin.value
                 kunci_unik = f"{laci_terpilih}_{pin_terpilih}"
 
-                #Magnet lock menyala
+                # 🔥 TITIP PESAN KE SENSOR MANAGER
+                target_expected["laci"] = laci_terpilih
+                target_expected["pin"] = pin_terpilih
+                target_expected["action"] = "TARUH"
+
                 buka_laci_otomatis(laci_terpilih)
 
                 waktu_tunggu = 0 
                 max_waktu = 15 
 
-                #looping mengecek apakah sensor sudah bernilai 1 yang artinya alat sudah ditaruh 
                 while status_sensor_realtime.get(kunci_unik, 0) == 0:
                     await asyncio.sleep(1)
                     waktu_tunggu += 1 
                     if waktu_tunggu >= max_waktu:
-                        break #waktu sudah habis
+                        break 
+                
+                # 🔥 RESET PESAN SETELAH SELESAI/TIMEOUT
+                target_expected["laci"] = None
+                target_expected["pin"] = None
+                target_expected["action"] = None
+
+                # (SISA KODEMU MULAI DARI if status_sensor_realtime.get(...) TETAP UTUH)
 
                 #jika sukses mendeteksi 1 maka akan menyimpan ke database 
                 if status_sensor_realtime.get(kunci_unik, 0) == 1:

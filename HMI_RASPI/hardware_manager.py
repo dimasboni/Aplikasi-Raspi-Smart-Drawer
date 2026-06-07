@@ -62,7 +62,7 @@ def bunyikan_buzzer_error(durasi=1.5):
             print("🚨 BUZZER MATI (Simulasi)")
             
     threading.Thread(target=_bunyi, daemon=True).start()
-    
+
 # Fungsi membuka laci 
 def membuka_laci(nomor_laci):
     pin_target = pin_magnet.get(nomor_laci)
