@@ -40,7 +40,6 @@ def create_filled_button(
         disabled=disabled,
     )
 
-
 def create_menu_card(title, subtitle, img, bg_icon, on_click):
     """Mencetak kartu menu kotak (seperti menu User/Admin di layar utama)"""
     return ft.Container(

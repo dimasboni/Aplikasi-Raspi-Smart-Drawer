@@ -451,22 +451,23 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             dialog_hapus.open = True
             page.update()
 
-        # ---- Buat daftar alat dengan pagination ----
+        # ---- Buat daftar alat dengan scroll ----
         list_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
 
-        def muat_daftar_alat(kata_kunci=""):
+        def muat_daftar_alat(kata_kunci="", laci="1"):
             list_ui.controls.clear() 
             try:
                 with sqlite3.connect("smartdrawer.db") as conn:
                     cursor = conn.cursor()
                     if kata_kunci:
                         cursor.execute(
-                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools WHERE name LIKE ?",
-                            (f"%{kata_kunci}%",)
+                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools WHERE name LIKE ? AND page = ? ORDER BY mqtt_topic ASC",
+                            (f"%{kata_kunci}%", laci)
                         )
                     else:
                         cursor.execute(
-                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools",
+                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools WHERE page =? ORDER BY mqtt_topic ASC",
+                            (laci,)
                         )
                     semua_alat = cursor.fetchall()
             except Exception:
@@ -526,22 +527,39 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 list_ui.controls.append(kotak_alat)
             page.update()
         
+        tombol_laci = ft.SegmentedButton(
+            on_change=lambda e: muat_daftar_alat(input_search.value, list(e.control.selected)[0]),
+            selected_icon=ft.Icon(ft.Icons.CHECK_SHARP, size=16),
+            selected=["1"], #untuk default langsung ke laci 1
+            allow_multiple_selection=False,
+            segments=[
+                ft.Segment(value="1", label=ft.Text("Drawer 1", weight="bold")),
+                ft.Segment(value="2", label=ft.Text("Drawer 2", weight="bold")),
+                ft.Segment(value="3", label=ft.Text("Drawer 3", weight="bold")),
+                ft.Segment(value="4", label=ft.Text("Drawer 4", weight="bold"))
+            ]
+        )
+
         input_search = ft.TextField(
             hint_text="Search Tool Here",
             width=600,
             border_color="blue",
             border_radius=10,
             color="black",
-            on_change=lambda e: muat_daftar_alat(e.control.value)
+            on_change=lambda e: muat_daftar_alat(e.control.value, list(tombol_laci.selected)[0])
         )
-        muat_daftar_alat()
+
+        muat_daftar_alat(laci="1")
+
         main_card = ft.Container(
             content=ft.Column(
                 [
                     input_search,
-                    ft.Container(content=list_ui, height=300),
+                    tombol_laci, 
+                    ft.Container(content=list_ui, height=250),
                 ],
                 horizontal_alignment="center",
+                spacing=15  
             ),
             width=700,
             bgcolor="white",

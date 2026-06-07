@@ -536,7 +536,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             teks_indikator.value = f"Alat Terverifikasi ({len(scanned_tools)} / {total_pinjaman})"
             btn_confirm.disabled = len(scanned_tools) == 0
             
-            # 🔥 LOGIKA EMPTY STATE (RUANG HAMPA) 🔥
+            def hapus_scanned_item(e, idx):
+                alat_dihapus = scanned_tools.pop(idx)
+                status_text.value=f"Remove: {alat_dihapus['name']}"
+                status_text.color = "RED"
+                update_ui()
+                input_tag.focus()
+
             if not scanned_tools:
                 list_scanned_ui.controls.append(
                     ft.Container(
@@ -577,8 +583,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                                                 content=ft.Text(f"📍 {t['pin']}", size=12, weight="bold", color="#1E293B"),
                                                 bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
                                             ),
+                                            ft.IconButton(
+                                                icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
+                                                icon_color="red",
+                                                tooltip="Cancel",
+                                                on_click=lambda e, i=idx: hapus_scanned_item(e, i)
+                                            )
                                         ],
-                                        spacing=8
+                                        spacing=8,
+                                        vertical_alignment="center"
                                     )
                                 ],
                                 alignment="spaceBetween"
