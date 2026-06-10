@@ -306,7 +306,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     
                     # Lanjut simpan ke database dan proses barang berikutnya
                     simpan_log_pengembalian(session_data["user_now"], tool_name)
-                    await asyncio.sleep(2.0)
+                    await asyncio.sleep(1.5)
                     show_kembali_position_selection(scanned_tools, index + 1)
                     return
                 
@@ -1121,6 +1121,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     sub_status_txt.color = GREEN_SENSOR
                     page.update()
                     
+                    await asyncio.sleep(1.5)
                     # Lanjut ke scan RFID alat
                     nav["show_scan_tag_alat"](tool_name, slot_num) 
                     return
@@ -1142,7 +1143,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 
                 print("[TIMEOUT] User timeout.")
                 nav["show_home"]()
-                
+
         page.add(
             build_standard_layout(
                 ft.Column(

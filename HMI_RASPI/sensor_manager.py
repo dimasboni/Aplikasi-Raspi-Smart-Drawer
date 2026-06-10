@@ -84,18 +84,18 @@ def on_mqtt_message(client, userdata, msg):
                         target_expected["lockdown"] = False
                         target_expected["wrong_pin"] = None
                         buzzer_off()
-        else: 
-            if pin_sensor != target_expected["pin"]:
-                if target_expected["action"] == "AMBIL" and val == 0:
-                    print(f"Wrong Position Detected {pin_sensor}!")
-                    target_expected["lockdown"] = True
-                    target_expected["wrong_pin"] = pin_sensor
-                    buzzer_on() 
-                elif target_expected["action"] == "TARUH" and val == 1:
-                    print(f"Wrong Position Detected {pin_sensor}!")
-                    target_expected["lockdown"] = True
-                    target_expected["wrong_pin"] = pin_sensor
-                    buzzer_on()
+            else: 
+                if pin_sensor != target_expected["pin"]:
+                    if target_expected["action"] == "AMBIL" and val == 0:
+                        print(f"Wrong Position Detected {pin_sensor}!")
+                        target_expected["lockdown"] = True
+                        target_expected["wrong_pin"] = pin_sensor
+                        buzzer_on() 
+                    elif target_expected["action"] == "TARUH" and val == 1:
+                        print(f"Wrong Position Detected {pin_sensor}!")
+                        target_expected["lockdown"] = True
+                        target_expected["wrong_pin"] = pin_sensor
+                        buzzer_on()
                                     
     # ====================================================
 
