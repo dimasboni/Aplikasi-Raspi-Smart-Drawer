@@ -95,7 +95,7 @@ def kirim_ke_server_niko(user_name, tool_name, status):
         paket_data = {"nama_user": user_name, "nama_alat": tool_name, "status": status}
         print(f"🚀 [API NIKO] Mengirim data: {paket_data}") # CCTV 1: Cek paket yang dikirim
         try:
-            response = requests.post(URL_LOG_PINJAM, json=paket_data, timeout=3)
+            response = requests.post(URL_LOG_PINJAM, json=paket_data, timeout=10)
             # CCTV 2: Cek apa jawaban dari Laravel!
         except Exception as e: 
             pass

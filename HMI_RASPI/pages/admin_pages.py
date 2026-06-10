@@ -26,7 +26,7 @@ import asyncio
 
 import flet as ft
 from PIL import Image as PILImage
-from hardware_manager import buka_laci_otomatis, bunyikan_buzzer_error
+from hardware_manager import buka_laci_otomatis, bunyikan_buzzer_error, buzzer_off
 from sensor_manager import status_sensor_realtime, target_expected
 
 from config import (
@@ -1037,6 +1037,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         return # 🔥 Stop eksekusi! Laci batal dibuka.
             except Exception as ex:
                 print(f"Error cek duplikat RFID: {ex}")
+
+            teks_laci_tambah = ft.Text(f"Drawer {dd_laci.value} Open", weight="bold", color="blue", sie=18)
+            teks_posisi_tambah = ft.Text(f"Please place the Tool in Position {dd_pin.value}")
             
             dialog_tunggu_sensor = ft.AlertDialog(
                 modal=True,
@@ -1045,8 +1048,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     [
                         ft.ProgressRing(),
                         ft.Container(height=10),
-                        ft.Text(f"Drawer {dd_laci.value} Open", weight="bold", color="blue", size=18),
-                        ft.Text(f"Please Place the Tool in Position {dd_pin.value}"),
+                        teks_laci_tambah,
+                        teks_posisi_tambah,
                         ft.Text("System will save automatically when the tool is placed", color="grey", size=12, text_align="center")
                     ],
                     tight=True,
@@ -1074,6 +1077,21 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 max_waktu = 15 
 
                 while status_sensor_realtime.get(kunci_unik, 0) == 0:
+                    if target_expected.get("lockdown"):
+                        teks_laci_tambah.color = "red"
+                        teks_posisi_tambah.value = f"Wrong position! Please pick up the tool from {target_expected.get('wrong_pin')}!"
+                        teks_posisi_tambah.color = "red"
+                        teks_posisi_tambah.weight = "bold"
+                        page.update()
+                        await asyncio.sleep(1)
+                        continue
+                    else:
+                        teks_laci_tambah.color = "blue"
+                        teks_posisi_tambah.value = f"Please place the Tool in Position {pin_terpilih}"
+                        teks_posisi_tambah.color = TEXT_COLOR
+                        teks_posisi_tambah.weight = "normal"
+                        page.update()
+
                     await asyncio.sleep(1)
                     waktu_tunggu += 1 
                     if waktu_tunggu >= max_waktu:
@@ -1083,8 +1101,9 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 target_expected["laci"] = None
                 target_expected["pin"] = None
                 target_expected["action"] = None
-
-                # (SISA KODEMU MULAI DARI if status_sensor_realtime.get(...) TETAP UTUH)
+                target_expected["lockdown"] =False
+                target_expected["wrong_pin"] = None
+                buzzer_off()
 
                 #jika sukses mendeteksi 1 maka akan menyimpan ke database 
                 if status_sensor_realtime.get(kunci_unik, 0) == 1:

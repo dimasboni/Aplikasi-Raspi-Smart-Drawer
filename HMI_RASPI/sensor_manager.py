@@ -1,7 +1,8 @@
 import paho.mqtt.client as mqtt
+import sqlite3
 from db_manager import update_stok_otomatis
 from config import settings
-from hardware_manager import bunyikan_buzzer_error 
+from hardware_manager import bunyikan_buzzer_error, buzzer_on, buzzer_off
 
 status_sensor_realtime = {
     "SL6x150mm": 1, 
@@ -12,7 +13,9 @@ status_sensor_realtime = {
 target_expected = {
     "laci": None,
     "pin": None,
-    "action": None  
+    "action": None,
+    "lockdown": False, 
+    "wrong_pin": None
 }
 
 MQTT_BROKER = settings.get("mqqt_broker", "localhost")
@@ -73,16 +76,30 @@ def on_mqtt_message(client, userdata, msg):
     # ====================================================
     if target_expected["laci"] is not None:
         if laci_sensor == target_expected["laci"]:
+            if target_expected["lockdown"]:
+                if pin_sensor == target_expected["wrong_pin"]:
+                    if (target_expected["action"] == "AMBIL" and val == 1) or \
+                       (target_expected["action"] == "TARUH" and val == 0):
+                        print("Tool Has benn placed/removed in the correct position")
+                        target_expected["lockdown"] = False
+                        target_expected["wrong_pin"] = None
+                        buzzer_off()
+        else: 
             if pin_sensor != target_expected["pin"]:
                 if target_expected["action"] == "AMBIL" and val == 0:
-                    print(f"🚨 [BUZZER] SALAH AMBIL! Harusnya {target_expected['pin']}, dicabut di {pin_sensor}!")
-                    bunyikan_buzzer_error(1.5)
+                    print(f"Wrong Position Detected {pin_sensor}!")
+                    target_expected["lockdown"] = True
+                    target_expected["wrong_pin"] = pin_sensor
+                    buzzer_on() 
                 elif target_expected["action"] == "TARUH" and val == 1:
-                    print(f"🚨 [BUZZER] SALAH TARUH! Harusnya {target_expected['pin']}, ditaruh di {pin_sensor}!")
-                    bunyikan_buzzer_error(1.5)
+                    print(f"Wrong Position Detected {pin_sensor}!")
+                    target_expected["lockdown"] = True
+                    target_expected["wrong_pin"] = pin_sensor
+                    buzzer_on()
+                                    
     # ====================================================
 
-    import sqlite3 
+  
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()

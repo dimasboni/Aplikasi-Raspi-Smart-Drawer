@@ -63,6 +63,20 @@ def bunyikan_buzzer_error(durasi=1.5):
             
     threading.Thread(target=_bunyi, daemon=True).start()
 
+    def buzzer_on():
+        target_pin = pin_buzzer.get(1)
+        if GPIO_AVAILABLE:
+            GPIO.output(target_pin, GPIO.HIGH)
+        else:
+            print("BUZZER ON ")
+
+    def buzzer_off():
+        target_pin = pin_buzzer.get(1)
+        if GPIO_AVAILABLE:
+            GPIO.output(target_pin, GPIO.LOW)
+        else:
+            print("BUZZER OFF")
+
 # Fungsi membuka laci 
 def membuka_laci(nomor_laci):
     pin_target = pin_magnet.get(nomor_laci)

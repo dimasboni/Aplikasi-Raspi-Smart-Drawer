@@ -41,7 +41,7 @@ from db_manager import (
 )
 from sensor_manager import status_sensor_realtime, target_expected
 from ui_komponen import create_filled_button, build_standard_layout
-from hardware_manager import buka_laci_otomatis
+from hardware_manager import buka_laci_otomatis, buzzer_off
 
 
 def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
@@ -261,21 +261,50 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             kunci_unik = f"{laci_tujuan}_{pin_terpilih}"
             waktu_maksimal = 15
 
-            # 🔥 TITIP PESAN
+            # 🔥 TITIP PESAN KE SENSOR MANAGER
             target_expected["laci"] = int(laci_tujuan)
             target_expected["pin"] = pin_terpilih
             target_expected["action"] = "TARUH"
+            target_expected["lockdown"] = False
+            target_expected["wrong_pin"] = None
 
             while state["aktif"] and waktu_maksimal > 0:
+                
+                # 🛡️ STEP 1: CEK LOCKDOWN (Menunggu user mencabut alat asing yg salah ditaruh)
+                if target_expected.get("lockdown"):
+                    indicator_circle.bgcolor = "red"
+                    teks_countdown.color = "red"
+                    # UI BAHASA INGGRIS
+                    sub_status_txt.value = f"🚨 WRONG POSITION! Please remove the tool from {target_expected.get('wrong_pin')}!"
+                    sub_status_txt.color = "red"
+                    sub_status_txt.weight = "bold"
+                    page.update()
+                    await asyncio.sleep(0.5)
+                    continue 
+                else:
+                    indicator_circle.bgcolor = BLUE_SENSOR
+                    teks_countdown.color = "red" 
+                    sub_status_txt.value = f"DRAWER {laci_tujuan} IS OPEN. PLEASE RETURN THE TOOL TO POSITION {pin_terpilih}."
+                    sub_status_txt.color = SUB_TEXT_COLOR
+                    sub_status_txt.weight = "normal"
+
+                # ✅ STEP 2: JIKA ALAT BERHASIL DITARUH (Sensor = 1)
                 if status_sensor_realtime.get(kunci_unik, 0) == 1:
                     state["aktif"] = False
-                    # 🔥 RESET PESAN
+                    
                     target_expected["laci"] = None
                     target_expected["pin"] = None
                     target_expected["action"] = None
+                    target_expected["lockdown"] = False
+                    target_expected["wrong_pin"] = None 
+                    buzzer_off() 
                     
                     indicator_circle.bgcolor = GREEN_SENSOR
-                    # ... (sisa kodemu tetap sama) ...
+                    sub_status_txt.value = "Tool returned successfully!"
+                    sub_status_txt.color = GREEN_SENSOR
+                    page.update()
+                    
+                    # Lanjut simpan ke database dan proses barang berikutnya
                     simpan_log_pengembalian(session_data["user_now"], tool_name)
                     await asyncio.sleep(2.0)
                     show_kembali_position_selection(scanned_tools, index + 1)
@@ -286,12 +315,16 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 await asyncio.sleep(1)
                 waktu_maksimal -= 1
                 
+            # ❌ STEP 3: TIMEOUT
             if state["aktif"]:
                 state["aktif"] = False
-                # 🔥 RESET PESAN
                 target_expected["laci"] = None
                 target_expected["pin"] = None
                 target_expected["action"] = None
+                target_expected["lockdown"] = False
+                target_expected["wrong_pin"] = None 
+                buzzer_off() 
+                
                 print("[TIMEOUT] User timeout on return.")
                 nav["show_home"]()
 
@@ -1045,22 +1078,51 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             kunci_unik = f"{laci_alat}_{slot_num}"
             waktu_maksimal = 15
 
-            # 🔥 TITIP PESAN
+            # 🔥 TITIP PESAN KE SENSOR MANAGER
             target_expected["laci"] = int(laci_alat)
             target_expected["pin"] = slot_num
             target_expected["action"] = "AMBIL"
+            target_expected["lockdown"] = False
+            target_expected["wrong_pin"] = None 
 
             while state["aktif"] and waktu_maksimal > 0:
+                
+                # 🛡️ STEP 1: CEK LOCKDOWN (Menunggu user mengembalikan alat yg salah cabut)
+                if target_expected.get("lockdown"):
+                    indicator_circle.bgcolor = "red"
+                    teks_countdown.color = "red"
+                    # UI BAHASA INGGRIS
+                    sub_status_txt.value = f"🚨 WRONG POSITION! Please return the tool to {target_expected.get('wrong_pin')}!"
+                    sub_status_txt.color = "red"
+                    sub_status_txt.weight = "bold"
+                    page.update()
+                    await asyncio.sleep(0.5)
+                    continue 
+                else:
+                    indicator_circle.bgcolor = BLUE_SENSOR
+                    teks_countdown.color = "red" 
+                    sub_status_txt.value = "Drawer is open. Please take the tool and close the drawer."
+                    sub_status_txt.color = SUB_TEXT_COLOR
+                    sub_status_txt.weight = "normal"
+
+                # ✅ STEP 2: JIKA ALAT BERHASIL DIAMBIL (Sensor = 0)
                 if status_sensor_realtime.get(kunci_unik, 1) == 0:
                     state["aktif"] = False
-                    # 🔥 RESET PESAN
+                    
                     target_expected["laci"] = None
                     target_expected["pin"] = None
                     target_expected["action"] = None
+                    target_expected["lockdown"] = False
+                    target_expected["wrong_pin"] = None 
+                    buzzer_off()
 
                     indicator_circle.bgcolor = GREEN_SENSOR
-                    # ... (sisa kodemu tetap sama) ...
-                    nav["show_scan_tag_alat"](tool_name, slot_num)
+                    sub_status_txt.value = "Tool taken successfully!"
+                    sub_status_txt.color = GREEN_SENSOR
+                    page.update()
+                    
+                    # Lanjut ke scan RFID alat
+                    nav["show_scan_tag_alat"](tool_name, slot_num) 
                     return
 
                 teks_countdown.value = f"{waktu_maksimal} seconds"
@@ -1068,15 +1130,19 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 await asyncio.sleep(1)
                 waktu_maksimal -= 1
 
+            # ❌ STEP 3: TIMEOUT
             if state["aktif"]:
                 state["aktif"] = False
-                # 🔥 RESET PESAN
                 target_expected["laci"] = None
                 target_expected["pin"] = None
                 target_expected["action"] = None
+                target_expected["lockdown"] = False
+                target_expected["wrong_pin"] = None 
+                buzzer_off()
+                
                 print("[TIMEOUT] User timeout.")
                 nav["show_home"]()
-
+                
         page.add(
             build_standard_layout(
                 ft.Column(
