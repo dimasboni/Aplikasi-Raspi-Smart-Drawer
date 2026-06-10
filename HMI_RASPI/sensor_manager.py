@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 import sqlite3
 from db_manager import update_stok_otomatis
 from config import settings
-from hardware_manager import bunyikan_buzzer_error, buzzer_on, buzzer_off
+from hardware_manager import bunyikan_buzzer_error, buzzer_off, buzzer_on
 
 status_sensor_realtime = {
     "SL6x150mm": 1, 
