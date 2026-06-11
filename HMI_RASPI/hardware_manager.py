@@ -63,14 +63,33 @@ def bunyikan_buzzer_error(durasi=1.5):
             
     threading.Thread(target=_bunyi, daemon=True).start()
 
+buzzer_lockdown_aktif = False
+
 def buzzer_on():
+    global buzzer_lockdown_aktif
+    if buzzer_lockdown_aktif:
+        return
+    buzzer_lockdown_aktif = True
     target_pin = pin_buzzer.get(1)
-    if GPIO_AVAILABLE:
-        GPIO.output(target_pin, GPIO.HIGH)
-    else:
-        print("BUZZER ON ")
+
+    def beep_loop():
+        if not GPIO_AVAILABLE:
+            print("buzzer on (simulasi)")
+
+        while buzzer_lockdown_aktif: 
+            if GPIO_AVAILABLE:
+                GPIO.output(target_pin, GPIO.HIGH)
+            time.sleep(0.5)
+
+            if GPIO_AVAILABLE:
+                GPIO.output(target_pin, GPIO.LOW)
+            time.sleep(0.5)
+    
+    threading.Thread(target=beep_loop, daemon=True).start()
 
 def buzzer_off():
+    global buzzer_lockdown_aktif 
+    buzzer_lockdown_aktif = False
     target_pin = pin_buzzer.get(1)
     if GPIO_AVAILABLE:
         GPIO.output(target_pin, GPIO.LOW)
