@@ -30,33 +30,20 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
         page.overlay.clear()
         page.clean()
 
-        # Fungsi keluar aplikasi
+        # Fungsi keluar aplikasi (Sistem Bypass OS)
         async def keluar_aplikasi(e=None):
-            # 1. AMANKAN HARDWARE
             print("1. Membersihkan pin perangkat keras...")
             bersihkan_gpio()
 
-            # 2. BANGKITKAN TASKBAR OS
-            print("2. Menyalakan taskbar raspi kembali...")
+            print("2. Mengembalikan OS ke mode Normal (Shortcut & Taskbar)...")
+            # 🔥 MANTRA BONGKAR PROFIL & BANGKITKAN TASKBAR
+            os.system("cp ~/.config/labwc/rc.xml.normal ~/.config/labwc/rc.xml && labwc -r")
             os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
 
-            # 3. BUKA GEMBOK FLET
-            print("3. Membuka gembok prevent_close...")
-            page.window.prevent_close = False
-            page.update()
+            # Beri jeda sangat singkat agar OS sempat mengeksekusi perintah di atas
+            await asyncio.sleep(0.5)
 
-            # 4. KIRIM SURAT PERINTAH TUTUP
-            print("4. Mengirim perintah tutup ke layar UI...")
-            page.window.close() 
-
-            # 5. 🔥 TAHAN PYTHON JANGAN MATI DULU! (KUNCI UTAMA)
-            # Kita beri waktu 2 detik agar Flet UI sempat menerima perintah
-            # dan menghancurkan layarnya dengan mulus.
-            await asyncio.sleep(2.0)
-
-            # 6. CABUT NYAWA PYTHON (PENGAMAN TERAKHIR)
-            # Jika setelah 2 detik Python masih hidup, baru kita paksa mati.
-            print("5. Mematikan proses Python...")
+            print("3. Mematikan Python secara paksa!")
             os._exit(0)
 
         def pemicu_exit(e):
