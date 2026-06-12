@@ -32,6 +32,11 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
 
         # Fungsi keluar aplikasi
         async def keluar_aplikasi():
+
+            print("menonaktifkan prevent close")
+            page.window.prevent_close = False
+            page.update()
+            
             print("Menyalakan taskbar milik raspi kembali")
             os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
 
