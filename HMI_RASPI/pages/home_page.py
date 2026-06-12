@@ -32,11 +32,16 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
 
         # Fungsi keluar aplikasi
         async def keluar_aplikasi():
+            print("Menyalakan taskbar milik raspi kembali")
+            os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
+
             print("1. Menutup layar UI Flet...")
             await page.window.close()
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1.0)
+
             print("2. Membersihkan pin perangkat keras")
             bersihkan_gpio()
+
             print("3.Mematikan proses python...")
             os._exit(0)
 

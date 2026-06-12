@@ -23,6 +23,9 @@ import random
 import shutil
 import sqlite3
 import asyncio
+import requests
+import base64
+import threading 
 
 import flet as ft
 from PIL import Image as PILImage
@@ -35,7 +38,8 @@ from config import (
     SHADOW_COLOR,
     BLUE_SENSOR,
     GREEN_SENSOR,
-    DRAWER_CAPACITY
+    DRAWER_CAPACITY,
+    settings
 )
 from db_manager import simpan_log, simpan_log_pengembalian
 from ui_komponen import (
@@ -328,6 +332,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     filepath_asli = path_gambar_sekarang[0]
                     nama_asli = os.path.basename(filepath_asli)
                     nama_final = nama_asli 
+                    lokasi_simpan_baru = None
                     if os.path.isabs(filepath_asli):
                         lokasi_simpan = os.path.join("assets", nama_asli)
                         
@@ -343,6 +348,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 lokasi_simpan = os.path.join("assets", nama_final)
 
                             shutil.copy(filepath_asli, lokasi_simpan)
+                            lokasi_Simpan_baru = lokasi_simpan #Menandai bahwa gambar di-Update
 
                     with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                         conn.execute(
@@ -355,6 +361,22 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             ),
                         )
                         conn.commit()
+
+                        #Sinkronisasi API NIKO (update gambar)
+                        if lokasi_simpan_baru: 
+                            def kirim_api_update():
+                                try: 
+                                    with open(lokasi_simpan_baru, "rb") as f:
+                                        gambar_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+                                    ip_server = settings.get("db_host")
+                                    url_update = f"http://{ip_server}/api/update-gambar/{input_nama.value.strip()}"
+
+                                    requests.post(url_update, json={"gambar_base64": gambar_b64}, timeout=10)
+                                    print(f"Sukes update gambar: {input_nama.value.strip()}")
+                                except Exception as e: 
+                                    print(f"Gagal update gambar{e}")
+                            threading.Thread(target=kirim_api_update, daemon=True).start()
                         dialog_edit.open = False
                         page.run_task(tunda_lalu_refresh)
 
@@ -411,13 +433,25 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
 
         # ---- Sub-fungsi: hapus alat dari database ----
-        def hapus_alat_db(rfid_target):
+        def hapus_alat_db(rfid_target, nama_alat):
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                     conn.cursor().execute(
                         "DELETE FROM tools WHERE rfid_tag_uid = ?", (rfid_target,)
                     )
                     conn.commit()
+
+                # ---- Fungsi Sinkronisasi API NICO (HAPUS)----
+                def kirim_api_hapus():
+                    try: 
+                        ip_server = settings.get("db_host", "127.0.0.1:8000")
+                        url_hapus = f"http://{ip_server}/api/hapus-alat/{nama_alat}"
+                        requests.delete(url_hapus, timeout=10)
+                        print(f"Sukses hapus API: {nama_alat}")
+                    except Exception as e: 
+                        print(f"gagal menghapus api:{e}")
+                threading.Thread(target=kirim_api_hapus, daemon=True).start()
+
             except Exception:
                 pass
 
@@ -429,7 +463,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             def jalankan_hapus(e):
                 dialog_hapus.open = False
                 page.update()
-                hapus_alat_db(rfid_target)
+                hapus_alat_db(rfid_target, nama_alat)
                 page.run_task(tunda_lalu_refresh)
 
             dialog_hapus.title = ft.Text(
@@ -1038,7 +1072,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as ex:
                 print(f"Error cek duplikat RFID: {ex}")
 
-            teks_laci_tambah = ft.Text(f"Drawer {dd_laci.value} Open", weight="bold", color="blue", sie=18)
+            teks_laci_tambah = ft.Text(f"Drawer {dd_laci.value} Open", weight="bold", color="blue", size=18)
             teks_posisi_tambah = ft.Text(f"Please place the Tool in Position {dd_pin.value}")
             
             dialog_tunggu_sensor = ft.AlertDialog(
@@ -1144,7 +1178,43 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 ),
                             )
                             conn.commit()
-
+                            # --- TAMBAHAN SINKRONISASI API NICO (TAMBAH ALAT) ---
+                        def kirim_api_tambah():
+                            try:
+                                with open(lokasi_simpan, "rb") as f:
+                                    gambar_b64 = base64.b64encode(f.read()).decode("utf-8")
+                                
+                                ip_server = settings.get("db_host", "127.0.0.1:8000")
+                                url_tambah = f"http://{ip_server}/api/tambah-alat"
+                                
+                                nama_input = input_nama.value.strip()
+                                payload = {
+                                    "kode_alat": nama_input,
+                                    "nama_alat": nama_input,
+                                    "stok": 1,
+                                    "gambar_base64": gambar_b64
+                                }
+                                
+                                # Tembak API dan simpan jawabannya di variabel 'response'
+                                response = requests.post(
+                                    url_tambah, 
+                                    json=payload, 
+                                    headers={"Accept": "application/json"}, 
+                                    timeout=10
+                                )
+                                
+                                # Cek apakah Laravel membalas dengan status sukses (200 atau 201)
+                                if response.status_code in [200, 201]:
+                                    print(f"✅ Sukses Tambah API: {nama_input}")
+                                else:
+                                    # Jika Laravel error (misal 500), tampilkan pesannya!
+                                    print(f"❌ API Menolak! Status: {response.status_code} | Jawaban: {response.text}")
+                                    
+                            except Exception as e:
+                                print(f"❌ Gagal Terkoneksi (Server Mati/Jaringan Terputus): {e}")
+                        
+                        threading.Thread(target=kirim_api_tambah, daemon=True).start()
+                        # ----------------------------------------------------
                         dialog_tunggu_sensor.open = False
 
                         notif_text.value = "✅ Alat berhasil ditambahkan!"
