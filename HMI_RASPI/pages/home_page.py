@@ -31,23 +31,26 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
 
         # Fungsi keluar aplikasi
+        # Fungsi keluar aplikasi
         async def keluar_aplikasi():
-
-            print("menonaktifkan prevent close")
-            page.window.prevent_close = False
-            page.update()
-            
-            print("Menyalakan taskbar milik raspi kembali")
-            os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
-
-            print("1. Menutup layar UI Flet...")
-            await page.window.close()
-            await asyncio.sleep(1.0)
-
-            print("2. Membersihkan pin perangkat keras")
+            # 1. AMANKAN HARDWARE DULU (Paling Krusial)
+            print("1. Membersihkan pin perangkat keras...")
+            # Kita pastikan pin magnet lock dan buzzer dinonaktifkan sebelum sistem mati
             bersihkan_gpio()
 
-            print("3.Mematikan proses python...")
+            # 2. BANGKITKAN TASKBAR
+            print("2. Menyalakan taskbar raspi kembali...")
+            os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
+
+            # 3. JEDA SEBENTAR
+            # Memberi waktu setengah detik agar OS sempat memunculkan taskbar 
+            # sebelum Python mematikan dirinya sendiri
+            await asyncio.sleep(0.5)
+
+            # 4. CABUT COLOKAN!
+            print("3. Mematikan proses Python dan Flet secara paksa...")
+            # Tidak perlu 'await page.window.close()'. Perintah di bawah ini 
+            # akan langsung membunuh UI dan Python seketika tanpa nge-hang.
             os._exit(0)
 
         def pemicu_exit(e):
