@@ -36,23 +36,27 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
             print("1. Membersihkan pin perangkat keras...")
             bersihkan_gpio()
 
-            # 2. BANGKITKAN TASKBAR
+            # 2. BANGKITKAN TASKBAR OS
             print("2. Menyalakan taskbar raspi kembali...")
             os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
 
-            # 3. BUKA GEMBOK & TUTUP LAYAR (TANPA KATA 'AWAIT'!)
-            print("3. Membuka gembok dan menutup layar Flet...")
+            # 3. BUKA GEMBOK FLET
+            print("3. Membuka gembok prevent_close...")
             page.window.prevent_close = False
             page.update()
-            
-            # 🔥 INI KUNCINYA: Jangan pakai await di sini!
+
+            # 4. KIRIM SURAT PERINTAH TUTUP
+            print("4. Mengirim perintah tutup ke layar UI...")
             page.window.close() 
 
-            # Beri jeda sedikit agar sistem OS sempat merender penutupan jendela
-            await asyncio.sleep(0.5)
+            # 5. 🔥 TAHAN PYTHON JANGAN MATI DULU! (KUNCI UTAMA)
+            # Kita beri waktu 2 detik agar Flet UI sempat menerima perintah
+            # dan menghancurkan layarnya dengan mulus.
+            await asyncio.sleep(2.0)
 
-            # 4. MATIKAN PYTHON
-            print("4. Mematikan proses Python...")
+            # 6. CABUT NYAWA PYTHON (PENGAMAN TERAKHIR)
+            # Jika setelah 2 detik Python masih hidup, baru kita paksa mati.
+            print("5. Mematikan proses Python...")
             os._exit(0)
 
         def pemicu_exit(e):
