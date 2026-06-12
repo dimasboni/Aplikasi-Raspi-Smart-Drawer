@@ -31,29 +31,25 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
 
         # Fungsi keluar aplikasi
-        async def keluar_aplikasi():
-            # 1. AMANKAN HARDWARE DULU (Prioritas Utama)
+        async def keluar_aplikasi(e=None):
+            # 1. Amankan hardware!
             print("1. Membersihkan pin perangkat keras...")
             bersihkan_gpio()
 
-            # 2. BANGKITKAN TASKBAR
+            # 2. Bangkitkan taskbar OS
             print("2. Menyalakan taskbar raspi kembali...")
             os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
 
-            # 3. TURUTI KEMAUAN FLET (Buka Gembokmu!)
-            print("3. Menonaktifkan prevent close...")
-            page.window.prevent_close = False
-            page.update()
-
-            # 4. TUTUP LAYAR DENGAN SOPAN
-            print("4. Menutup layar UI Flet...")
-            await page.window.close()
+            # 3. HANCURKAN JENDELA UI SECARA PAKSA!
+            print("3. Menghancurkan UI Flet...")
+            # 🔥 INI KUNCINYA! Jangan pakai .close(), pakai .destroy()
+            page.window.destroy() 
             
-            # Beri waktu agak panjang (1 detik) agar Flet benar-benar selesai menutup layarnya
-            await asyncio.sleep(1.0)
+            # Beri jeda sangat singkat agar UI lenyap dari layar
+            await asyncio.sleep(0.5)
 
-            # 5. CABUT NYAWA PYTHON SEBAGAI FINISHING
-            print("5. Mematikan proses python...")
+            # 4. Cabut nyawa proses Python
+            print("4. Mematikan proses Python...")
             os._exit(0)
 
         def pemicu_exit(e):
