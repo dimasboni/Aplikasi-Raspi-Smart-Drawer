@@ -48,7 +48,7 @@ def main(page: ft.Page):
     # --- Pengaturan jendela ---
     page.window.maximizable = False #mencegah user memaksimalkan jendela karena sudah fullscreen 
     page.window.maximized = True
-    page.window.prevent_close = True
+    page.window.prevent_close = False
     page.window.frameless = True       # Hilangkan border & title bar
     page.window.focused = True
     page.window.fullscreen = True      # Fullscreen agar tidak bisa ditutup sembarangan
