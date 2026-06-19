@@ -93,6 +93,13 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     "#E3F2FD",
                                     lambda _: show_manage_tools_page(),
                                 ),
+                                create_menu_card(
+                                    "Sycn Web",
+                                    "Pending Tools",
+                                    "history.png",
+                                    "#FFF3E0",
+                                    lambda _: show_sync_web_page()
+                                ),
                             ],
                             alignment="center",
                             spacing=30,
@@ -130,7 +137,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
 
         # ---- Sub-fungsi: buka dialog edit alat ----
-        def buka_dialog_edit(nama_alat_lama, rfid_lama, gambar_lama):
+        def buka_dialog_edit(nama_alat_lama, rfid_lama, gambar_lama, kondisi_lama):
             preview_img = ft.Container(
                 content=ft.Image(
                     src=f"/{gambar_lama}", width=150, height=150, fit="contain"
@@ -348,35 +355,46 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 lokasi_simpan = os.path.join("assets", nama_final)
 
                             shutil.copy(filepath_asli, lokasi_simpan)
-                            lokasi_Simpan_baru = lokasi_simpan #Menandai bahwa gambar di-Update
+                            lokasi_simpan_baru = lokasi_simpan #Menandai bahwa gambar di-Update
 
                     with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                         conn.execute(
-                            "UPDATE tools SET name = ?, rfid_tag_uid = ?, img = ? WHERE rfid_tag_uid = ?",
+                            "UPDATE tools SET name = ?, rfid_tag_uid = ?, img = ?, kondisi = ? WHERE rfid_tag_uid = ?",
                             (
                                 input_nama.value,
                                 input_rfid.value,
                                 nama_final, 
+                                dd_kondisi_edit.value, 
                                 rfid_lama, 
                             ),
                         )
                         conn.commit()
 
                         #Sinkronisasi API NIKO (update gambar)
-                        if lokasi_simpan_baru: 
-                            def kirim_api_update():
-                                try: 
+                        def kirim_api_update():
+                            try: 
+                                ip_server = settings.get("db_host", "127.0.0.1:8000")
+                                # Menggunakan nama_alat_lama dari parameter fungsi sebagai ID pencarian
+                                url_update = f"http://{ip_server}/api/v1/edit-alat/{nama_alat_lama}"
+                                
+                                payload = {
+                                    "nama_alat": input_nama.value.strip(),
+                                    "uid_tag_rfid": input_rfid.value.strip(),
+                                    "kondisi": dd_kondisi_edit.value
+                                }
+
+                                if lokasi_simpan_baru: 
                                     with open(lokasi_simpan_baru, "rb") as f:
-                                        gambar_b64 = base64.b64encode(f.read()).decode("utf-8")
+                                        payload["gambar_base64"] = base64.b64encode(f.read()).decode("utf-8")
 
-                                    ip_server = settings.get("db_host")
-                                    url_update = f"http://{ip_server}/api/update-gambar/{input_nama.value.strip()}"
+                                requests.post(url_update, json=payload, headers={"Accept": "application/json"}, timeout=10)
+                                print(f"Sukses update API: {input_nama.value.strip()}")
+                            except Exception as e: 
+                                print(f"Gagal update API: {e}")
+                                
+                        threading.Thread(target=kirim_api_update, daemon=True).start()
+                        # --------------------------------------------------------
 
-                                    requests.post(url_update, json={"gambar_base64": gambar_b64}, timeout=10)
-                                    print(f"Sukes update gambar: {input_nama.value.strip()}")
-                                except Exception as e: 
-                                    print(f"Gagal update gambar{e}")
-                            threading.Thread(target=kirim_api_update, daemon=True).start()
                         dialog_edit.open = False
                         page.run_task(tunda_lalu_refresh)
 
@@ -386,6 +404,16 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             input_nama = ft.TextField(label="Nama Alat", value=nama_alat_lama)
             input_rfid = ft.TextField(label="RFID tag UID", value=rfid_lama)
 
+            dd_kondisi_edit = ft.Dropdown(
+                label="Kondisi Alat",
+                value=kondisi_lama if kondisi_lama else "baik", 
+                options=[
+                    ft.dropdown.Option(key="baik", text="Baik"),
+                    ft.dropdown.Option(key="kurang baik", text="Kurang Baik"),
+                    ft.dropdown.Option(key="rusak", text="Rusak"),
+                ],
+            )
+
             dialog_edit.title = ft.Text(f"Edit Alat: {nama_alat_lama}")
             dialog_edit.on_dismiss = (
                 lambda _: setattr(dialog_edit, "open", False) or page.update()
@@ -394,9 +422,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 [
                     input_nama,
                     input_rfid,
+                    dd_kondisi_edit
                 ],
                 width=250,
-                height=250,
+                height=300,
             )
             kolom_edit_kanan = ft.Column(
                 [
@@ -445,7 +474,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 def kirim_api_hapus():
                     try: 
                         ip_server = settings.get("db_host", "127.0.0.1:8000")
-                        url_hapus = f"http://{ip_server}/api/hapus-alat/{nama_alat}"
+                        url_hapus = f"http://{ip_server}/api/v1/hapus-alat/{nama_alat}"
                         requests.delete(url_hapus, timeout=10)
                         print(f"Sukses hapus API: {nama_alat}")
                     except Exception as e: 
@@ -495,12 +524,12 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     cursor = conn.cursor()
                     if kata_kunci:
                         cursor.execute(
-                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools WHERE name LIKE ? AND page = ? ORDER BY mqtt_topic ASC",
+                            "SELECT name, mqtt_topic, rfid_tag_uid, img, kondisi FROM tools WHERE name LIKE ? AND page = ? ORDER BY mqtt_topic ASC",
                             (f"%{kata_kunci}%", laci)
                         )
                     else:
                         cursor.execute(
-                            "SELECT name, mqtt_topic, rfid_tag_uid, img FROM tools WHERE page =? ORDER BY mqtt_topic ASC",
+                            "SELECT name, mqtt_topic, rfid_tag_uid, img, kondisi FROM tools WHERE page =? ORDER BY mqtt_topic ASC",
                             (laci,)
                         )
                     semua_alat = cursor.fetchall()
@@ -508,11 +537,12 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 semua_alat = []
 
             for baris in semua_alat:
-                nama_alat, topik, rfid_alat, gambar_alat = (
+                nama_alat, topik, rfid_alat, gambar_alat, kondisi_alat = (
                     baris[0],
                     baris[1],
                     baris[2],
                     baris[3],
+                    baris[4],
                 )
                 kotak_alat = ft.Container(
                     content=ft.Row(
@@ -536,8 +566,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     "✏️ Edit", size=14, color="blue", weight="bold"
                                 ),
                                 padding=10,
-                                on_click=lambda _, n=nama_alat, r=rfid_alat, g=gambar_alat: buka_dialog_edit(
-                                    n, r, g
+                                on_click=lambda _, n=nama_alat, r=rfid_alat, g=gambar_alat, k=kondisi_alat: buka_dialog_edit(
+                                    n, r, g, k
                                 ),
                                 ink=True,
                             ),
@@ -902,7 +932,6 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             read_only=True,
             color=TEXT_COLOR,
         )
-
         
         # 1. Pancingan Awal Laci 1
         from config import DRAWER_CAPACITY
@@ -1058,6 +1087,10 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 notif_text.value = "❌ Pilih posisi pin sensor!"
                 page.update()
                 return
+            if not dd_kondisi.value: 
+                notif_text.value = "❌ Choose Condition of the Tool!"
+                page.update()
+                return
             
             uid_tag = input_rfid.value.strip()
             try:
@@ -1166,7 +1199,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
 
                         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                             conn.execute(
-                                "INSERT INTO tools (name, rfid_tag_uid, img, total, page, mqtt_topic, rot) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                "INSERT INTO tools (name, rfid_tag_uid, img, total, page, mqtt_topic, rot, kondisi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                 (
                                     input_nama.value.strip(),
                                     input_rfid.value.strip(),
@@ -1175,6 +1208,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     laci_terpilih,
                                     pin_terpilih,
                                     0,
+                                    dd_kondisi.value
                                 ),
                             )
                             conn.commit()
@@ -1185,16 +1219,21 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                     gambar_b64 = base64.b64encode(f.read()).decode("utf-8")
                                 
                                 ip_server = settings.get("db_host", "127.0.0.1:8000")
-                                url_tambah = f"http://{ip_server}/api/tambah-alat"
+                                url_tambah = f"http://{ip_server}/api/v1/tambah-alat"
                                 
                                 nama_input = input_nama.value.strip()
                                 payload = {
                                     "kode_alat": nama_input,
                                     "nama_alat": nama_input,
                                     "stok": 1,
-                                    "gambar_base64": gambar_b64
+                                    "gambar_base64": gambar_b64,
+                                    "kondisi": dd_kondisi.value,
+                                    "uid_tag_rfid": input_rfid.value.strip(),
+                                    "mqtt_topic": dd_pin.value,
+                                    "laci_id": dd_laci.value
                                 }
                                 
+                                print(f"Isi Payload = {payload}")
                                 # Tembak API dan simpan jawabannya di variabel 'response'
                                 response = requests.post(
                                     url_tambah, 
@@ -1240,10 +1279,25 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     page.update()
             page.run_task(pantau_sensor_tambah)
 
+        #Penambahan untuk memilih kondisi alat pada tambah alat 
+        dd_kondisi = ft.Dropdown(
+            label="Tool Condition",
+            width=350,
+            border_color=BLUE_SENSOR,
+            border_radius=10,
+            color=TEXT_COLOR,
+            options=[
+                ft.dropdown.Option(key="baik", text="Baik"),
+                ft.dropdown.Option(key="kurang baik", text="Kurang Baik"),
+                ft.dropdown.Option(key="rusak", text="Rusak")
+            ],
+        )
+
         # Layout form
         kolom_kiri = ft.Column(
             [
                 input_nama,
+                dd_kondisi,
                 dd_laci,
                 dd_pin,
                 ft.Row(
@@ -1258,7 +1312,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     spacing=10,
                 ),
             ],
-            spacing=15,
+            spacing=10,
         )
 
         kolom_kanan = ft.Column(
@@ -1294,7 +1348,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                             width=700,
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
-                        ft.Container(height=10),
+                        ft.Container(height=5),
                         notif_text,
                         create_filled_button(
                             "Simpan Data Alat",
@@ -1313,7 +1367,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 padding=ft.padding.only(left=25, right=25, top=50, bottom=25),
                 border_radius=20,
                 shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR),
-                margin=ft.margin.only(top=-50)
+                margin=ft.margin.only(top=-60)
             ),
         )
         page.overlay.append(dialog_tambah_browser)
@@ -1329,6 +1383,179 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             )
         )
 
+    # ------------------------------------------------------------------
+    # SHOW SYNC WEB PAGE (Antrean Sinkronisasi Alat Pending)
+    # ------------------------------------------------------------------
+    def show_sync_web_page(e=None):
+        page.clean()
+        page.overlay.clear()
+
+        list_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
+        notif_text = ft.Text("", color="red", size=14, weight="bold")
+        
+        # Komponen Pop-up Scan
+        input_popup_scan = ft.TextField(label="Tempelkan Tag RFID...", autofocus=True)
+        dialog_scan = ft.AlertDialog(
+            title=ft.Text("Scan Tag RFID Baru", weight="bold", color="black"),
+            content=ft.Column([ft.Text("Scan tag untuk alat ini:"), input_popup_scan, notif_text], tight=True),
+        )
+        
+        # Komponen Pop-up Sensor
+        teks_laci_tambah = ft.Text("", weight="bold", color="blue", size=18)
+        teks_posisi_tambah = ft.Text("")
+        dialog_tunggu_sensor = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Menunggu Sensor....", weight="bold", color="black"),
+            content=ft.Column([ft.ProgressRing(), ft.Container(height=10), teks_laci_tambah, teks_posisi_tambah], tight=True, horizontal_alignment="center")
+        )
+        page.overlay.extend([dialog_scan, dialog_tunggu_sensor])
+
+        # --- Fungsi Utama Menarik Data Web ---
+        def muat_antrean_pending():
+            list_ui.controls.clear()
+            try:
+                ip_server = settings.get("db_host", "127.0.0.1:8000")
+                response = requests.get(f"http://{ip_server}/api/v1/alat-pending", timeout=10)
+                alat_pending = response.json() if response.status_code == 200 else []
+                
+                if not alat_pending:
+                    list_ui.controls.append(ft.Container(content=ft.Text("✅ Tidak ada antrean alat pending dari Web!", color="green", weight="bold"), padding=20))
+                    page.update()
+                    return
+
+                # Sortir laci dari terkecil
+                alat_pending.sort(key=lambda x: (int(x['laci_id']), x['mqtt_topic']))
+                laci_terkecil_aktif = min([int(alat['laci_id']) for alat in alat_pending])
+
+                for alat in alat_pending:
+                    laci_alat = int(alat['laci_id'])
+                    bisa_diproses = (laci_alat == laci_terkecil_aktif)
+                    
+                    kotak = ft.Container(
+                        content=ft.Row([
+                            ft.Container(content=ft.Text(f"Laci {laci_alat}", weight="bold"), width=60),
+                            ft.Text(alat['mqtt_topic'], color="grey", width=50),
+                            ft.Text(alat['kode_alat'], weight="bold", expand=True),
+                            ft.ElevatedButton(
+                                "Scan & Masukkan", 
+                                bgcolor=BLUE_SENSOR if bisa_diproses else "grey",
+                                color="white", disabled=not bisa_diproses,
+                                on_click=lambda e, a=alat: mulai_scan_rfid(a)
+                            )
+                        ]),
+                        padding=10, border=ft.border.all(1, "#E5E7EB"), border_radius=10,
+                        bgcolor="white" if bisa_diproses else "#F3F4F6"
+                    )
+                    list_ui.controls.append(kotak)
+            except Exception as e:
+                list_ui.controls.append(ft.Text(f"Gagal koneksi ke server: {e}", color="red"))
+            page.update()
+
+        # --- Proses 1: Buka Pop-up Scan ---
+        alat_terpilih = {}
+        def mulai_scan_rfid(alat):
+            alat_terpilih.clear()
+            alat_terpilih.update(alat)
+            input_popup_scan.value = ""
+            notif_text.value = ""
+            dialog_scan.open = True
+            page.update()
+            threading.Thread(target=lambda: [time.sleep(0.5), input_popup_scan.focus(), page.update()]).start()
+
+        # --- Proses 2: RFID Ditangkap, Lanjut ke Sensor ---
+        def proses_rfid_submit(e):
+            uid = str(input_popup_scan.value).strip()
+            if not uid: return
+            
+            # Cek duplikat RFID di SQLite
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    if conn.cursor().execute("SELECT name FROM tools WHERE rfid_tag_uid = ?", (uid,)).fetchone():
+                        notif_text.value = "❌ Tag RFID ini sudah dipakai alat lain!"
+                        page.update()
+                        return
+            except Exception: pass
+            
+            dialog_scan.open = False
+            laci_target = int(alat_terpilih['laci_id'])
+            pin_target = alat_terpilih['mqtt_topic']
+            
+            teks_laci_tambah.value = f"Laci {laci_target} Terbuka"
+            teks_posisi_tambah.value = f"Taruh {alat_terpilih['kode_alat']} di Pin {pin_target}"
+            dialog_tunggu_sensor.open = True
+            page.update()
+            
+            page.run_task(pantau_sensor, laci_target, pin_target, uid)
+            
+        input_popup_scan.on_submit = proses_rfid_submit
+
+        # --- Proses 3: Sensor IR & Simpan Data ---
+        async def pantau_sensor(laci_target, pin_target, uid_tag):
+            kunci_unik = f"{laci_target}_{pin_target}"
+            target_expected["laci"] = laci_target
+            target_expected["pin"] = pin_target
+            target_expected["action"] = "TARUH"
+            buka_laci_otomatis(laci_target)
+            bunyikan_buzzer_error(1.0)
+            
+            waktu_tunggu = 0
+            while status_sensor_realtime.get(kunci_unik, 0) == 0:
+                if target_expected.get("lockdown"):
+                    teks_laci_tambah.color = "red"
+                    teks_posisi_tambah.value = "❌ Salah posisi pin!"
+                else:
+                    teks_laci_tambah.color = "blue"
+                    teks_posisi_tambah.value = f"Taruh {alat_terpilih['kode_alat']} di Pin {pin_target}"
+                page.update()
+                await asyncio.sleep(1)
+                waktu_tunggu += 1
+                if waktu_tunggu >= 15: break
+                
+            # Reset target sensor
+            target_expected.update({"laci": None, "pin": None, "action": None, "lockdown": False, "wrong_pin": None})
+            buzzer_off()
+            
+            # Jika fisik terdeteksi masuk
+            if status_sensor_realtime.get(kunci_unik, 0) == 1:
+                try:
+                    # 1. Simpan ke SQLite lokal
+                    with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                        conn.execute(
+                            "INSERT INTO tools (name, rfid_tag_uid, img, total, page, mqtt_topic, rot, kondisi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            (alat_terpilih['kode_alat'], uid_tag, alat_terpilih['foto'], 1, laci_target, pin_target, 0, alat_terpilih['kondisi'])
+                        )
+                        conn.commit()
+                        
+                    # 2. Kirim konfirmasi ke API Nico
+                    def kirim_konfirmasi():
+                        try:
+                            ip_server = settings.get("db_host", "127.0.0.1:8000")
+                            url = f"http://{ip_server}/api/v1/konfirmasi-pending/{alat_terpilih['kode_alat']}"
+                            requests.post(url, json={"uid_tag_rfid": uid_tag}, timeout=10)
+                        except Exception: pass
+                    threading.Thread(target=kirim_konfirmasi, daemon=True).start()
+                    
+                    dialog_tunggu_sensor.open = False
+                    page.snack_bar = ft.SnackBar(ft.Text("✅ Alat sukses disinkronkan!"), bgcolor="green", open=True)
+                    page.update()
+                    await asyncio.sleep(1)
+                    muat_antrean_pending() # Refresh ulang antrean
+                except Exception as e:
+                    dialog_tunggu_sensor.open = False
+                    print(f"Error Database: {e}")
+            else:
+                dialog_tunggu_sensor.open = False
+                page.snack_bar = ft.SnackBar(ft.Text("❌ Timeout: Sensor tidak mendeteksi alat."), bgcolor="red", open=True)
+                page.update()
+
+        muat_antrean_pending()
+
+        main_card = ft.Container(
+            content=ft.Column([ft.Text("Antrean Alat dari Website", size=24, weight="bold"), list_ui], horizontal_alignment="center", spacing=15),
+            width=700, bgcolor="white", padding=30, border_radius=20, shadow=ft.BoxShadow(blur_radius=20, color=SHADOW_COLOR), margin=ft.margin.only(top=20)
+        )
+
+        page.add(build_standard_layout(title_text="SYNC WEB", content_control=main_card, back_func=show_edit_tools_menu))
     # ------------------------------------------------------------------
     # SHOW ADMIN DASHBOARD
     # ------------------------------------------------------------------
@@ -1513,3 +1740,4 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
     nav["show_history_page"] = show_history_page
     nav["show_add_tool_page"] = show_add_tool_page
     nav["show_login_admin"] = show_login_admin
+    nav["show_sync_web_page"] = show_sync_web_page

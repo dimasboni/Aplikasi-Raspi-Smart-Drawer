@@ -9,8 +9,8 @@ from config import settings
 
 ip_server_niko = settings.get("db_host", "127.0.0.1:8000")
 IP_LARAVEL = f"{ip_server_niko}"
-URL_CEK_KOIN = f"http://{IP_LARAVEL}/api/cek-koin"
-URL_LOG_PINJAM = f"http://{IP_LARAVEL}/api/log-pinjam"
+URL_CEK_KOIN = f"http://{IP_LARAVEL}/api/v1/cek-koin"
+URL_LOG_PINJAM = f"http://{IP_LARAVEL}/api/v1/log-pinjam"
 
 import urllib.parse # <-- Pastikan tambahkan ini di baris paling atas (di bawah import sqlite3)
 
@@ -92,7 +92,7 @@ def get_borrowed_tools(username):
 def kirim_ke_server_niko(user_name, tool_name, status):
     """Mengirim log ke server API PHP NIKO menggunakan thread terpisah."""
     def tugas_kirim():
-        paket_data = {"nama_user": user_name, "nama_alat": tool_name, "status": status}
+        paket_data = {"nama_user": user_name, "kode_alat": tool_name, "status": status}
         print(f"🚀 [API NIKO] Mengirim data: {paket_data}") # CCTV 1: Cek paket yang dikirim
         try:
             response = requests.post(URL_LOG_PINJAM, json=paket_data, timeout=10)
