@@ -14,7 +14,7 @@ except:
 
 if GPIO_AVAILABLE: 
     #Menggunakan pin BCM 
-    GPIO.setmode(GPIO.BOARD)
+    GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
     #Pemetaan pin yang digunakan untuk Magnet Lock 
