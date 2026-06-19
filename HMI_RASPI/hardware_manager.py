@@ -14,19 +14,19 @@ except:
 
 if GPIO_AVAILABLE: 
     #Menggunakan pin BCM 
-    GPIO.setmode(GPIO.BCM)
+    GPIO.setmode(GPIO.BOARD)
     GPIO.setwarnings(False)
 
     #Pemetaan pin yang digunakan untuk Magnet Lock 
     pin_magnet = {
-        1: 24,      
-        2: 23,
-        3: 27,
-        4: 26
+        1: 16,      
+        2: 25,
+        3: 24,
+        4: 22
     }
 
     pin_buzzer = {
-        1: 17
+        1: 27
     }
     
     for pin in  pin_magnet.values():
