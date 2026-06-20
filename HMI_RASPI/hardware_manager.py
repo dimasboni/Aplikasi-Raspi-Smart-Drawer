@@ -14,24 +14,23 @@ except:
 
 if GPIO_AVAILABLE: 
     # Menggunakan pin urutan fisik jarum (BOARD)
-    GPIO.setmode(GPIO.BOARD)
+    GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
     # Pemetaan pin yang digunakan untuk Magnet Lock 
     pin_magnet = {
-        1: 36,      
-        2: 22,
-        3: 18,
-        4: 15
+        1: 16,      
+        2: 25,
+        3: 24,
+        4: 22
     }
 
     pin_buzzer = {
-        1: 13
+        1: 27
     }
     
-    # 🔥 1. PIN LED GLOBAL (Pastikan angka ini adalah jarum fisik yang VALID)
-    PIN_LED_MERAH = 38 
-    PIN_LED_HIJAU = 40 
+    PIN_LED_MERAH = 26 
+    PIN_LED_HIJAU = 23 
     
     # Setup Magnet
     for pin in pin_magnet.values():
