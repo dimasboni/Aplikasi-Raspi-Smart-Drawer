@@ -1,8 +1,8 @@
 import time 
 import threading 
 
-#Digunakan untuk mengecek tampilan di laptop
-#Jadi tidak akan membuat vscode error 
+# Digunakan untuk mengecek tampilan di laptop
+# Jadi tidak akan membuat vscode error 
 
 try: 
     import RPi.GPIO as GPIO 
@@ -13,55 +13,48 @@ except:
     print("Pin is not available")
 
 if GPIO_AVAILABLE: 
-    #Menggunakan pin BCM 
-    GPIO.setmode(GPIO.BCM)
+    # Menggunakan pin urutan fisik jarum (BOARD)
+    GPIO.setmode(GPIO.BOARD)
     GPIO.setwarnings(False)
 
-    #Pemetaan pin yang digunakan untuk Magnet Lock 
+    # Pemetaan pin yang digunakan untuk Magnet Lock 
     pin_magnet = {
-        1: 16,      
-        2: 25,
-        3: 24,
-        4: 22
+        1: 36,      
+        2: 22,
+        3: 18,
+        4: 15
     }
 
     pin_buzzer = {
-        1: 27
+        1: 13
     }
-
-    pin_led_merah = 23
-    pin_led_hijau = 26
-
-    for pin in  pin_magnet.values():
-    #pin dimatikan dulu untuk menjaga sisa listrik yang ada 
+    
+    # 🔥 1. PIN LED GLOBAL (Pastikan angka ini adalah jarum fisik yang VALID)
+    PIN_LED_MERAH = 38 
+    PIN_LED_HIJAU = 40 
+    
+    # Setup Magnet
+    for pin in pin_magnet.values():
         GPIO.setup(pin, GPIO.OUT)
-        GPIO.output(pin, GPIO.HIGH)
+        GPIO.output(pin, GPIO.HIGH) # Magnet ON (Terkunci)
 
+    # Setup Buzzer
     for pin in pin_buzzer.values():
         GPIO.setup(pin, GPIO.OUT)
         GPIO.output(pin, GPIO.LOW)
-    
-    GPIO.setup(pin_led_merah, GPIO.OUT)
-    GPIO.output(pin_led_merah, GPIO.HIGH)
 
-    GPIO.setup(pin_led_hijau, GPIO.OUT)
-    GPIO.output(pin_led_hijau, GPIO.LOW)
+    # 🔥 2. SETUP KONDISI AWAL (Standby: Laci Terkunci = Merah Nyala)
+    GPIO.setup(PIN_LED_MERAH, GPIO.OUT)
+    GPIO.output(PIN_LED_MERAH, GPIO.HIGH)
 
+    GPIO.setup(PIN_LED_HIJAU, GPIO.OUT)
+    GPIO.output(PIN_LED_HIJAU, GPIO.LOW)
 
 else:
-    pin_magnet = {
-        1: 16,      
-        2: 25,
-        3: 24,
-        4: 22
-    }
-
-    pin_buzzer = {
-        1: 27
-    }
-
-    pin_led_merah = 23
-    pin_led_hijau = 26
+    pin_magnet = {1: 22, 2: 23, 3: 24, 4: 25}
+    pin_buzzer = {1: 17}
+    PIN_LED_MERAH = 99
+    PIN_LED_HIJAU = 100
 
 def bunyikan_buzzer_error(durasi=1.5):
     def _bunyi():
@@ -110,33 +103,44 @@ def buzzer_off():
     else:
         print("BUZZER OFF")
 
-# Fungsi membuka laci 
+# 🔥 3. LOGIKA BUKA LACI ANTI-CRASH
 def membuka_laci(nomor_laci):
-    pin_target = pin_magnet.get(nomor_laci)
+    try:
+        pin_target = pin_magnet.get(nomor_laci)
 
-    if pin_target:
-        print(f"membuka laci {nomor_laci}, pin BCM {pin_target}")
+        if pin_target:
+            print(f"Membuka laci {nomor_laci}, pin BOARD {pin_target}")
 
-        if GPIO_AVAILABLE: 
-            GPIO.output(pin_target, GPIO.LOW) #laci terbuka 
-            GPIO.output(pin_led_merah, GPIO.LOW)
-            GPIO.OUTPUT(pin_led_hijau, GPIO.HIGH)
-        time.sleep(5) #terbuka selama 5 detik 
+            if GPIO_AVAILABLE: 
+                GPIO.output(pin_target, GPIO.LOW) # Magnet terlepas (Laci terbuka)
+                
+                # LACI TERBUKA: Hijau Nyala (Aman Ditarik), Merah Mati
+                GPIO.output(PIN_LED_MERAH, GPIO.LOW)
+                GPIO.output(PIN_LED_HIJAU, GPIO.HIGH)
 
-        print(f"Mengunci kembali laci {nomor_laci}")
+            # Istirahat 5 detik
+            time.sleep(5) 
 
-        if GPIO_AVAILABLE:
-            GPIO.output(pin_target, GPIO.HIGH)
-            GPIO.output(pin_led_merah, GPIO.HIGH)
-            GPIO.OUTPUT(pin_led_hijau, GPIO.LOW)
+            print(f"Mengunci kembali laci {nomor_laci}")
 
-#Fungsi pemicu yang akan dipanggil 
+            if GPIO_AVAILABLE:
+                GPIO.output(pin_target, GPIO.HIGH) # Magnet kembali mengunci
+                
+                # KEMBALI STANDBY: Merah Nyala (Terkunci), Hijau Mati
+                GPIO.output(PIN_LED_MERAH, GPIO.HIGH)
+                GPIO.output(PIN_LED_HIJAU, GPIO.LOW)
+                
+    except Exception as e:
+        # 🔥 Jika ada pin salah atau korslet, terminal akan berteriak di sini!
+        print(f"❌ ERROR FATAL DI THREAD LACI: {e}")
+
+# Fungsi pemicu yang akan dipanggil 
 def buka_laci_otomatis(nomor_laci):
-    #Membuka laci agar UI tetap lancar 
+    # Membuka laci agar UI tetap lancar 
     task = threading.Thread(target=membuka_laci, args=(nomor_laci,))
     task.start()
 
 def bersihkan_gpio():
-    #memanggil ketika aplikasi di tutup 
+    # memanggil ketika aplikasi di tutup 
     if GPIO_AVAILABLE:
         GPIO.cleanup()
