@@ -28,7 +28,10 @@ if GPIO_AVAILABLE:
     pin_buzzer = {
         1: 27
     }
-    
+
+    pin_led_merah = 23
+    pin_led_hijau = 26
+
     for pin in  pin_magnet.values():
     #pin dimatikan dulu untuk menjaga sisa listrik yang ada 
         GPIO.setup(pin, GPIO.OUT)
@@ -37,17 +40,28 @@ if GPIO_AVAILABLE:
     for pin in pin_buzzer.values():
         GPIO.setup(pin, GPIO.OUT)
         GPIO.output(pin, GPIO.LOW)
+    
+    GPIO.setup(pin_led_merah, GPIO.OUT)
+    GPIO.output(pin_led_merah, GPIO.HIGH)
+
+    GPIO.setup(pin_led_hijau, GPIO.OUT)
+    GPIO.output(pin_led_hijau, GPIO.LOW)
+
 
 else:
     pin_magnet = {
-        1: 22,
-        2: 23,
+        1: 16,      
+        2: 25,
         3: 24,
-        4: 25
+        4: 22
     }
+
     pin_buzzer = {
-        1: 17
+        1: 27
     }
+
+    pin_led_merah = 23
+    pin_led_hijau = 26
 
 def bunyikan_buzzer_error(durasi=1.5):
     def _bunyi():
@@ -105,16 +119,18 @@ def membuka_laci(nomor_laci):
 
         if GPIO_AVAILABLE: 
             GPIO.output(pin_target, GPIO.LOW) #laci terbuka 
-
+            GPIO.output(pin_led_merah, GPIO.LOW)
+            GPIO.OUTPUT(pin_led_hijau, GPIO.HIGH)
         time.sleep(5) #terbuka selama 5 detik 
 
         print(f"Mengunci kembali laci {nomor_laci}")
 
         if GPIO_AVAILABLE:
             GPIO.output(pin_target, GPIO.HIGH)
+            GPIO.output(pin_led_merah, GPIO.HIGH)
+            GPIO.OUTPUT(pin_led_hijau, GPIO.LOW)
 
 #Fungsi pemicu yang akan dipanggil 
-
 def buka_laci_otomatis(nomor_laci):
     #Membuka laci agar UI tetap lancar 
     task = threading.Thread(target=membuka_laci, args=(nomor_laci,))
