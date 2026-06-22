@@ -1066,7 +1066,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
         input_rfid.on_submit = proses_rfid
 
         def simpan_alat_baru(e):
-            bunyikan_buzzer_error(1.5) #Bunyi buzzer error sebagai pancingan untuk segera meletakkan alat di sensor, bisa disesuaikan durasinya
+            bunyikan_buzzer_error(0.5) #Bunyi buzzer error sebagai pancingan untuk segera meletakkan alat di sensor, bisa disesuaikan durasinya
             if not input_nama.value.strip():
                 notif_text.value = "❌ Nama alat tidak boleh kosong!"
                 page.update()

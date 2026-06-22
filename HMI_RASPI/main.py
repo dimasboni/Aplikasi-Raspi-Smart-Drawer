@@ -33,6 +33,7 @@ from config import (
 
 # 2. IMPORT SENSOR BACKGROUND
 from sensor_manager import jalankan_sensor_background
+from db_manager import jalankan_autosync_background
 
 # 3. IMPORT SEMUA MODUL HALAMAN
 from pages.home_page import register_home_page
@@ -62,6 +63,10 @@ def main(page: ft.Page):
 
     # --- Nyalakan sensor di latar belakang ---
     jalankan_sensor_background()
+
+    # --- Nyalakan update user baru di latar belakang --- 
+    jalankan_autosync_background()
+    
 
     # --- Data sesi bersama (dibagikan ke semua halaman) ---
     session_data = {"user_now": "Guest"}

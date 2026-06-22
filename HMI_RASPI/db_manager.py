@@ -1,6 +1,7 @@
 import sqlite3
 import requests
 import threading
+import time
 from config import settings 
 
 # --- KONFIGURASI API NIKO ---
@@ -136,3 +137,49 @@ def get_tool_positions(tool_name, page_number):
     except Exception as e: 
         print(f"Error get positions:{e}")
     return positions
+
+# ==============================================================================
+# FUNGSI AUTO-SYNC USER (LATAR BELAKANG)
+# ==============================================================================
+def autosync_user():
+    """Fungsi ini akan terus berputar diam-diam mengecek database web setiap 3 menit"""
+    while True:
+        try:
+            ip_server = settings.get("db_host", "127.0.0.1:8000")
+            response = requests.get(f"http://{ip_server}/api/v1/semua-user", timeout=10)
+            
+            if response.status_code == 200:
+                data_users = response.json()
+                
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    kursor = conn.cursor()
+                    # 1. HAPUS BERSIH data user lokal
+                    kursor.execute("DELETE FROM users")
+                    
+                    # 2. MASUKKAN ULANG data dari web
+                    for u in data_users:
+                        nama = u.get("nama")
+                        rfid = u.get("rfid_card_uid")
+                        role = u.get("role", "user") # Default 'user' jika kosong
+                        
+                        if nama and rfid:
+                            kursor.execute(
+                                "INSERT INTO users (nama, rfid_card_uid, role) VALUES (?, ?, ?)", 
+                                (nama, rfid, role)
+                            )
+                    conn.commit()
+                print("✅ [AUTO-SYNC] Data User berhasil diperbarui dari Web Nico!")
+            else:
+                print(f"❌ [AUTO-SYNC] Server Nico menolak! Status: {response.status_code}")
+                # HANYA cetak 200 karakter pertama agar Command Prompt tidak error/kepenuhan
+                print(f"Isi penolakannya: {response.text[:200]}...")
+        except Exception as err:
+            print(f"⚠️ [AUTO-SYNC] Gagal koneksi ke server web: {err}")
+
+        # Tunda selama 180 detik (3 menit) sebelum mengecek lagi
+        time.sleep(180) 
+
+def jalankan_autosync_background():
+    """Memanggil robot_autosync_user ke dalam thread agar UI tidak freeze"""
+    task = threading.Thread(target=autosync_user, daemon=True)
+    task.start()
