@@ -26,6 +26,7 @@ import asyncio
 import requests
 import base64
 import threading 
+import bcrypt
 
 import flet as ft
 from PIL import Image as PILImage
@@ -1655,18 +1656,30 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-                    if (
-                        conn.cursor()
-                        .execute(
-                            "SELECT * FROM admins WHERE username = ? AND password = ?",
-                            (username_field.value, password_field.value),
-                        )
-                        .fetchone()
-                    ):
-                        page.on_keyboard_event = None
-                        tujuan()
-                    else:
-                        teks_error.value = "❌ Username atau password salah!"
+                    user_record = conn.cursor().execute(
+                        "SELECT password FROM admins WHERE username = ?", (username_field.value,)
+                    ).fetchone()
+                    if user_record: 
+                        db_password = user_record[0]
+                        input_password = password_field.value
+                        if db_password.startswith("$2"):
+                            db_password = db_password.replace("$2y$", "$2b$")
+
+                            if bcrypt.checkpw(input_password.encode('utf-8'), db_password.encode('utf-8')):
+                                page.on_keyboard_event = None
+                                tujuan()
+                            else: 
+                                teks_error.value = "Password or Username is Wrong"
+                                page.update()
+                        else:
+                            if input_password == db_password: 
+                                page.on_keyboard_event = None
+                                tujuan()
+                            else:
+                                teks_error.value = "Password or Username is Wrong"
+                                page.update()
+                    else: 
+                        teks_error.value = "Password or Username is Wrong"
                         page.update()
             except Exception as err:
                 print(f"ERROR SAAT LOGIN: {err}")

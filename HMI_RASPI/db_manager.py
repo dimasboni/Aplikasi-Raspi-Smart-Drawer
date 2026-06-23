@@ -18,26 +18,25 @@ import urllib.parse # <-- Pastikan tambahkan ini di baris paling atas (di bawah 
 def cek_koin_user(username):
     """Menembak API Laravel untuk mengecek sisa koin user"""
     try:
-        # 1. Bersihkan spasi di belakang nama (jika ada) dan ubah spasi jadi format web (%20)
-        safe_username = urllib.parse.quote(username.strip())
-        target_url = f"{URL_CEK_KOIN}/{safe_username}"
-        
-        print(f"🚀 DEBUG API: Menembak ke -> {target_url}")
-        
-        # 2. Kirim ke server Niko
-        response = requests.get(target_url, timeout=10)
-        
-        # 3. Print apa jawaban server Niko ke terminal!
-        print(f"📡 DEBUG API: Status Jawaban Niko = {response.status_code}")
-        print(f"📦 DEBUG API: Isi Pesan Niko = {response.text}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("koin", 0)
+        with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
+            cursor = conn.cursor()
+            cursor.execute("SELECT koin FROM users WHERE nama=?", (username,)) 
+            row = cursor.fetchone()
+            if row: 
+                return row[0]
     except Exception as e:
         print(f"❌ Error API Cek Koin: {e}")
-        
-    return 0 # Tolak akses jika server mati atau error
+    return 0 
+
+def potong_koin_lokal(username, jumlah=1):
+    try:
+        with sqlite3.connect("smartdrawer.db", timeout=20) as conn: 
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET koin = koin - ? WHERE nama = ?", (jumlah, username))
+            conn.commit()
+    except Exception as e: 
+        print(f"Error potong koin lokal: {e}")
+
 # ==============================================================================
 # FUNGSI-FUNGSI DATABASE (SQLITE3)
 # Semua transaksi database kumpul di file ini!
@@ -90,13 +89,16 @@ def get_borrowed_tools(username):
 # FUNGSI PENCATATAN LOG & PENGIRIMAN API
 # ==============================================================================
 
-def kirim_ke_server_niko(user_name, tool_name, status):
+def kirim_ke_server_niko(log_id, user_name, tool_name, status):
     """Mengirim log ke server API PHP NIKO menggunakan thread terpisah."""
     def tugas_kirim():
         paket_data = {"nama_user": user_name, "kode_alat": tool_name, "status": status}
-        print(f"🚀 [API NIKO] Mengirim data: {paket_data}") # CCTV 1: Cek paket yang dikirim
         try:
             response = requests.post(URL_LOG_PINJAM, json=paket_data, timeout=10)
+            if response.status_code == 200: 
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    conn.execute("UPDATE log_peminjaman SET status_sync = 1 WHERE id = ?", (log_id,))
+                    conn.commit()
             # CCTV 2: Cek apa jawaban dari Laravel!
         except Exception as e: 
             pass
@@ -107,9 +109,14 @@ def simpan_log(user_name, tool_name, status):
     """Mencatat aktivitas PINJAM ke database lokal dan mengirim via API."""
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-            conn.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status) VALUES (?, ?, ?)", (user_name, tool_name, status))
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status, status_sync) VALUES (?, ?, ?, 0)", (user_name, tool_name, status))
+            log_id = cursor.lastrowid
             conn.commit()
-        kirim_ke_server_niko(user_name, tool_name, status)
+        if status == "PINJAM":
+            potong_koin_lokal(user_name)
+
+        kirim_ke_server_niko(log_id, user_name, tool_name, status)
     except Exception as e:
         print(f"Error simpan log: {e}")
 
@@ -117,9 +124,12 @@ def simpan_log_pengembalian(user_name, tool_name):
     """Mencatat aktivitas KEMBALI ke database lokal dan mengirim via API."""
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-            conn.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status) VALUES (?, ?, ?)", (user_name, tool_name, "KEMBALI"))
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status, status_sync) VALUES (?, ?, ?, 0)", (user_name, tool_name, "KEMBALI"))
+            log_id = cursor.lastrowid
             conn.commit()
-        kirim_ke_server_niko(user_name, tool_name, "KEMBALI")
+
+        kirim_ke_server_niko(log_id, user_name, tool_name, "KEMBALI")
     except Exception as e:
         print(f"Error simpan log pengembalian: {e}")
 
@@ -145,6 +155,23 @@ def autosync_user():
     """Fungsi ini akan terus berputar diam-diam mengecek database web setiap 3 menit"""
     while True:
         try:
+            with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, nama_user, nama_alat, status FROM log_peminjaman WHERE status_sync = 0")
+                pending_logs = cursor.fetchall()
+
+                for log in pending_logs: 
+                    log_id, u_name, t_name, status = log
+                    paket = {"nama_user": u_name, "kode_alat": t_name, "status": status}
+                    try: 
+                        res = requests.post(URL_LOG_PINJAM, json=paket, timeout=10)
+                        if res.status_code == 200:
+                            conn.execute("UPDATE log_peminjaman SET status_sync = 1 WHERE id = ?", (log_id,))
+                            print(f"RE-SYNC log tertunda {u_name}, berhasil di setor ke web!")
+                    except: 
+                        pass
+                conn.commit()
+
             ip_server = settings.get("db_host", "127.0.0.1:8000")
             response = requests.get(f"http://{ip_server}/api/v1/semua-user", timeout=10)
             
@@ -153,20 +180,27 @@ def autosync_user():
                 
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                     kursor = conn.cursor()
-                    # 1. HAPUS BERSIH data user lokal
-                    kursor.execute("DELETE FROM users")
-                    
-                    # 2. MASUKKAN ULANG data dari web
+
                     for u in data_users:
                         nama = u.get("nama")
                         rfid = u.get("rfid_card_uid")
-                        role = u.get("role", "user") # Default 'user' jika kosong
+                        role = u.get("role", "user").lower()
+                        koin_web = u.get("koin", 0)
                         
                         if nama and rfid:
-                            kursor.execute(
-                                "INSERT INTO users (nama, rfid_card_uid, role) VALUES (?, ?, ?)", 
-                                (nama, rfid, role)
-                            )
+                            if role == "user":
+                                kursor.execute("SELECT id FROM users WHERE rfid_card_uid = ?", (rfid,))
+                                if kursor.fetchone():
+                                    kursor.execute("UPDATE users SET nama = ?, koin = ? WHERE rfid_card_uid = ?", (nama, koin_web, rfid))
+                                else: 
+                                    kursor.execute("INSERT INTO users (nama, rfid_card_uid, role, koin) VALUES (?, ?, ?, ?)", (nama, rfid, role, koin_web))
+                            elif role == "admin":
+                                password_web = u.get("password", "admin123")
+                                kursor.execute("SELECT id FROM admins WHERE rfid_card_uid = ?", (rfid,))
+                                if kursor.fetchone():
+                                    kursor.execute("UPDATE admins SET username = ?, password = ? WHERE rfid_card_uid = ?", (nama, password_web, rfid))
+                                else: 
+                                    kursor.execute("INSERT INTO admins (username, password, rfid_card_uid) VALUES (?, ?, ?)", (nama, password_web, rfid))
                     conn.commit()
                 print("✅ [AUTO-SYNC] Data User berhasil diperbarui dari Web Nico!")
             else:
