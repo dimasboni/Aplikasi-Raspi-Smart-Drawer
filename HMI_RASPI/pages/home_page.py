@@ -32,13 +32,16 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
 
         # Fungsi keluar aplikasi (Sistem Bypass OS)
         async def keluar_aplikasi(e=None):
-            print("1. Membersihkan pin perangkat keras...")
-            bersihkan_gpio()
+
 
             print("2. Mengembalikan OS ke mode Normal (Shortcut & Taskbar)...")
             # 🔥 MANTRA BONGKAR PROFIL & BANGKITKAN TASKBAR
             os.system("cp ~/.config/labwc/rc.xml.normal ~/.config/labwc/rc.xml && labwc -r")
             os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
+                        
+            page.window.prevent_close = False
+            page.window.always_on_top = False
+            page.window.on_event = None
             
             page.run_task(page.window.destroy)
 

@@ -53,6 +53,8 @@ def main(page: ft.Page):
     page.window.focused = True
     page.window.fullscreen = True      # Fullscreen agar tidak bisa ditutup sembarangan
     page.window.resizeable = False
+    page.window.prevent_close = True
+    page.window.always_on_top = True
     page.title = settings.get("cabinet_name", "Smart Drawer System")
     page.bgcolor = BG_COLOR
     page.expand = True
