@@ -55,6 +55,12 @@ def main(page: ft.Page):
     page.window.resizeable = False
     page.window.prevent_close = True
     page.window.always_on_top = True
+    def on_window_event(e):
+          if e.data == "close":
+              # Abaikan event close, aplikasi hanya bisa ditutup via tombol Exit
+              print("⚠️ Percobaan menutup aplikasi via Alt+F4 diblokir!")
+              return
+    page.window.on_event = on_window_event
     page.title = settings.get("cabinet_name", "Smart Drawer System")
     page.bgcolor = BG_COLOR
     page.expand = True
