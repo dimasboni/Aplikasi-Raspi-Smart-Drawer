@@ -22,6 +22,7 @@ File pendukung lainnya:
 """
 
 import flet as ft
+import os
 
 # 1. IMPORT KONFIGURASI
 from config import (
@@ -47,6 +48,9 @@ from pages.flow_pages import register_flow_pages
 # ==============================================================================
 def main(page: ft.Page):
     # --- Pengaturan jendela ---
+
+    os.system("pkill -f wf-panel-pi")
+
     page.window.maximizable = False #mencegah user memaksimalkan jendela karena sudah fullscreen 
     page.window.maximized = True
     page.window.frameless = True       # Hilangkan border & title bar
