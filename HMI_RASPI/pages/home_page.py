@@ -39,6 +39,8 @@ def register_home_page(page: ft.Page, session_data: dict, nav: dict):
             # 🔥 MANTRA BONGKAR PROFIL & BANGKITKAN TASKBAR
             os.system("cp ~/.config/labwc/rc.xml.normal ~/.config/labwc/rc.xml && labwc -r")
             os.system("/usr/bin/lwrespawn /usr/bin/wf-panel-pi &")
+            
+            page.run_task(page.window.destroy)
 
             # Beri jeda sangat singkat agar OS sempat mengeksekusi perintah di atas
             await asyncio.sleep(0.5)
