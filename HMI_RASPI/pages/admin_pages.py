@@ -132,7 +132,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     ],
                     horizontal_alignment="center",
                     alignment="center",
-                    margin=ft.margin.only(top=-50),
+                    margin=ft.margin.only(top=-100),
                 ),
                 back_func=show_edit_tools_menu, # Kembali ke menu utama Edit Tools
             )
