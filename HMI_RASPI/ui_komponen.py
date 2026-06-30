@@ -40,26 +40,26 @@ def create_filled_button(
         disabled=disabled,
     )
 
-def create_menu_card(title, subtitle, img, bg_icon, on_click):
+def create_menu_card(title, subtitle, img, bg_icon, on_click, width=400, height=350, img_size=110, title_size=35, subtitle_size=25, padding=20):
     """Mencetak kartu menu kotak (seperti menu User/Admin di layar utama)"""
     return ft.Container(
         content=ft.Column(
             [
                 ft.Container(
-                    content=ft.Image(src=f"/{img}", width=110, height=110),
+                    content=ft.Image(src=f"/{img}", width=img_size, height=img_size),
                     bgcolor=bg_icon,
-                    padding=20,
+                    padding=padding,
                     border_radius=100,
                 ),
-                ft.Text(title, size=35, weight="bold", color=TEXT_COLOR),
-                ft.Text(subtitle, size=25, color=SUB_TEXT_COLOR, weight="bold"),
+                ft.Text(title, size=title_size, weight="bold", color=TEXT_COLOR),
+                ft.Text(subtitle, size=subtitle_size, color=SUB_TEXT_COLOR, weight="bold"),
             ],
             alignment="center",
             horizontal_alignment="center",
             spacing=10,
         ),
-        width=400,
-        height=350,
+        width=width,
+        height=height,
         bgcolor="white",
         border_radius=20,
         shadow=ft.BoxShadow(blur_radius=25, color=SHADOW_COLOR),
