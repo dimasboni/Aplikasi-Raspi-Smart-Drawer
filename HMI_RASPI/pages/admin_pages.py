@@ -70,68 +70,65 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
     # ------------------------------------------------------------------
     # SHOW EDIT TOOLS MENU
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # SHOW EDIT TOOLS MENU (REVISI FORMASI PIRAMIDA)
+    # ------------------------------------------------------------------
     def show_edit_tools_menu(e=None):
         page.clean()
+        
+        # Dimensi kartu disesuaikan agar muat 2 baris (Total tinggi < 500px)
+        K_WIDTH = 300
+        K_HEIGHT = 220
+        I_SIZE = 70
+        T_SIZE = 24
+        S_SIZE = 16
+
         page.add(
             build_standard_layout(
                 title_text="EDIT TOOLS",
                 content_control=ft.Column(
                     [
-                        ft.Container(height=20),
+                        # BARIS 1: Menu Utama (Tambah & Kelola)
                         ft.Row(
                             [
                                 create_menu_card(
-                                    "Add Tools",
-                                    "Tambah",
-                                    "tambah.png",
-                                    "#E8F5E9",
+                                    "Add Tools", "Tambah Alat", "tambah.png", "#E8F5E9",
                                     lambda _: show_add_tool_page(),
-                                    width=300,
-                                    height=270,
-                                    img_size=80,
-                                    title_size=26,
-                                    subtitle_size=18,
-                                    padding=15,
+                                    width=K_WIDTH, height=K_HEIGHT, img_size=I_SIZE,
+                                    title_size=T_SIZE, subtitle_size=S_SIZE
                                 ),
                                 create_menu_card(
-                                    "Manage",
-                                    "Ubah / Hapus",
-                                    "edit.png",
-                                    "#E3F2FD",
+                                    "Manage", "Ubah / Hapus", "edit.png", "#E3F2FD",
                                     lambda _: show_manage_tools_page(),
-                                    width=300,
-                                    height=270,
-                                    img_size=80,
-                                    title_size=26,
-                                    subtitle_size=18,
-                                    padding=15,
-                                ),
-                                create_menu_card(
-                                    "Sycn Web",
-                                    "Pending Tools",
-                                    "history.png",
-                                    "#FFF3E0",
-                                    lambda _: show_sync_web_page(),
-                                    width=300,
-                                    height=270,
-                                    img_size=80,
-                                    title_size=26,
-                                    subtitle_size=18,
-                                    padding=15,
+                                    width=K_WIDTH, height=K_HEIGHT, img_size=I_SIZE,
+                                    title_size=T_SIZE, subtitle_size=S_SIZE
                                 ),
                             ],
                             alignment="center",
                             spacing=30,
                         ),
+                        
+                        # BARIS 2: Menu Tambahan (Sync Web) diletakkan di bawah tengah
+                        ft.Row(
+                            [
+                                create_menu_card(
+                                    "Sync Web", "Pending Tools", "history.png", "#FFF3E0",
+                                    lambda _: show_sync_web_page(),
+                                    width=K_WIDTH, height=K_HEIGHT, img_size=I_SIZE,
+                                    title_size=T_SIZE, subtitle_size=S_SIZE
+                                ),
+                            ],
+                            alignment="center",
+                        ),
                     ],
                     horizontal_alignment="center",
                     alignment="center",
-                    margin=ft.margin.only(top=-100),
+                    spacing=20, # Jarak antar baris atas dan bawah
+                    margin=ft.margin.only(top=-40), # Menarik sedikit ke atas agar simetris
                 ),
                 back_func=show_admin_dashboard,
             )
         )
-
     # ------------------------------------------------------------------
     # SHOW MANAGE TOOLS PAGE  (dengan pagination)
     # ------------------------------------------------------------------
