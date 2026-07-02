@@ -1446,6 +1446,17 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     list_ui.controls.append(ft.Container(content=ft.Text("✅ Tidak ada antrean alat pending dari Web!", color="green", weight="bold"), padding=20))
                     page.update()
                     return
+                
+                alat_siap_masuk = [
+                    alat for alat in alat_pending 
+                    if alat.get('laci_id') and alat.get('mqtt_topic') is not None 
+                ]
+
+                if not alat_siap_masuk:
+                    list_ui.controls.append(ft.Container(
+                        content=ft.Text("Alat pending di web, laci/pin belum diatur!", color="orange", weight="bold"),
+                        padding=20
+                    ))
 
                 # Sortir laci dari terkecil
                 alat_pending.sort(key=lambda x: (int(x['laci_id']), x['mqtt_topic']))
