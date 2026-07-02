@@ -1441,6 +1441,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 ip_server = settings.get("db_host", "127.0.0.1:8000")
                 response = requests.get(f"http://{ip_server}/api/v1/alat-pending", timeout=10)
                 alat_pending = response.json() if response.status_code == 200 else []
+
+                print("CEK DATA DARI WEB:", alat_pending)
                 
                 if not alat_pending:
                     list_ui.controls.append(ft.Container(content=ft.Text("✅ Tidak ada antrean alat pending dari Web!", color="green", weight="bold"), padding=20))
