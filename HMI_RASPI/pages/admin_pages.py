@@ -1485,7 +1485,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     )
                     list_ui.controls.append(kotak)
             except Exception as e:
-                list_ui.controls.append(ft.Text(f"Gagal koneksi ke server: {e}", color="red"))
+                list_ui.controls.append(ft.Text(f"Please Check Again Data MQTT and Drawer", color="red"))
             page.update()
 
         # --- Proses 1: Buka Pop-up Scan ---
