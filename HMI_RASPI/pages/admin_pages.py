@@ -371,6 +371,22 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                     return
                 
                 try: 
+                    with sqlite3.connect("smartdrawer.db", timeout=10) as conn:
+                        cursor = conn.cursor()
+                        # --- TAMBAHKAN 3 BARIS PRINT INI UNTUK DEBUGGING ---
+                        print(f"🔍 DEBUG -> UID Baru: '{uid_baru}' | UID Lama: '{rfid_lama}'")
+                        cursor.execute("SELECT name FROM tools WHERE rfid_tag_uid = ?", (uid_baru,))
+                        print(f"🔍 CEK TANPA FILTER: {cursor.fetchone()}")
+                        # ---------------------------------------------------
+                        cursor.execute("SELECT name FROM tools WHERE rfid_tag_uid = ? AND rfid_tag_uid != ?", (uid_baru, rfid_lama))
+                        bentrok = cursor.fetchone()
+                        if bentrok:
+                            input_rfid.error_text = f"❌ Gagal: Tag RFID ini sudah dipakai alat {bentrok[0]} "
+
+                            input_rfid.update()
+                            page.update()
+                            return
+                        
                     filepath_asli = path_gambar_sekarang[0]
                     nama_asli = os.path.basename(filepath_asli)
                     nama_final = nama_asli 
