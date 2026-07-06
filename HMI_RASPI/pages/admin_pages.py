@@ -433,8 +433,15 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         dialog_edit.open = False
                         page.run_task(tunda_lalu_refresh)
 
+                except sqlite3.IntegrityError:
+                    # Ini akan bereaksi jika kamu scan Tag RFID yang sudah dipakai alat lain
+                    input_rfid.error_text = "❌ Gagal: Tag RFID ini sudah dipakai alat lain!"
+                    page.update()
                 except Exception as err:
-                    pass
+                    # Menangkap error lain agar UI tidak freeze
+                    print(f"Error sistem saat simpan: {err}")
+                    input_rfid.error_text = "❌ Terjadi error! Cek terminal."
+                    page.update()
 
             input_nama = ft.TextField(label="Nama Alat", value=nama_alat_lama)
             input_rfid = ft.TextField(label="RFID tag UID", value=rfid_lama)
