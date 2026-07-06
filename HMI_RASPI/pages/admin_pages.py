@@ -359,6 +359,17 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                 page.update()
 
             def eksekusi_simpan(e):
+                uid_baru = input_rfid.value.strip()
+                nama_baru = input_nama.value.strip()
+
+                input_rfid.error_text = None
+                page.update()
+
+                if not uid_baru:
+                    input_rfid.error_text = "UID Tag RFID tidak boleh kosong!"
+                    page.update()
+                    return
+                
                 try: 
                     filepath_asli = path_gambar_sekarang[0]
                     nama_asli = os.path.basename(filepath_asli)
@@ -385,8 +396,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         conn.execute(
                             "UPDATE tools SET name = ?, rfid_tag_uid = ?, img = ?, kondisi = ? WHERE rfid_tag_uid = ?",
                             (
-                                input_nama.value,
-                                input_rfid.value,
+                                nama_baru,
+                                uid_baru,
                                 nama_final, 
                                 dd_kondisi_edit.value, 
                                 rfid_lama, 
@@ -402,8 +413,8 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                 url_update = f"http://{ip_server}/api/v1/edit-alat/{nama_alat_lama}"
                                 
                                 payload = {
-                                    "nama_alat": input_nama.value.strip(),
-                                    "uid_tag_rfid": input_rfid.value.strip(),
+                                    "nama_alat": nama_baru,
+                                    "uid_tag_rfid": uid_baru,
                                     "kondisi": dd_kondisi_edit.value
                                 }
 
@@ -412,7 +423,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                                         payload["gambar_base64"] = base64.b64encode(f.read()).decode("utf-8")
 
                                 requests.post(url_update, json=payload, headers={"Accept": "application/json"}, timeout=10)
-                                print(f"Sukses update API: {input_nama.value.strip()}")
+                                print(f"Sukses update API: {nama_baru}")
                             except Exception as e: 
                                 print(f"Gagal update API: {e}")
                                 
