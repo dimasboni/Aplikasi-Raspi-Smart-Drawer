@@ -431,6 +431,7 @@ def register_admin_pages(page: ft.Page, session_data: dict, nav: dict):
                         # --------------------------------------------------------
 
                         dialog_edit.open = False
+                        page.update()
                         page.run_task(tunda_lalu_refresh)
 
                 except sqlite3.IntegrityError:
