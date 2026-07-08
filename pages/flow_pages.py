@@ -639,7 +639,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                     )
             page.update()
-            input_tag.focus()
 
         status_text = ft.Text(
             "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center"
@@ -695,15 +694,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as err:
                 print("DB Error:", err)
                 
-            async def kembalikan_fokus_segera(e=None):
-                await asyncio.sleep(0.2)  # Jeda 200ms, tunggu layar selesai merender kapsul baru
+            def kembalikan_fokus():
+                # Jeda tipis agar palu godam (page.update) dari update_ui() selesai bekerja
+                time.sleep(0.15) 
                 if state["aktif"]:
-                    input_tag.value = ""  # Baru kosongkan kotak input di sini
-                    input_tag.focus()     # Tarik paksa kursor
-                    page.update()         # Segarkan layar terakhir kalinya
+                    input_tag.value = ""
+                    input_tag.update() # 🎯 SNIPER UPDATE: Paksa komponen ini sadar diri!
+                    input_tag.focus()
 
-            # Eksekusi task-nya menggunakan sistem antrean Flet!
-            page.run_task(kembalikan_fokus_segera)
+            threading.Thread(target=kembalikan_fokus, daemon=True).start()
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
