@@ -622,8 +622,19 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                     )
             page.update()
+            force_focus_delayed()
 
         status_text = ft.Text("Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center")
+
+        def force_focus_delayed():
+            def _delayed():
+                time.sleep(0.1)
+                if state.get("aktif"):
+                    try:
+                        input_rfid.focus()
+                        page.update()
+                    except: pass
+            threading.Thread(target=_delayed, daemon=True).start()
 
         def proses_scan_dari_input(e):
             """Dipanggil saat TextField menerima Enter dari RFID reader."""
@@ -662,13 +673,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                             status_text.value = f"Pin ini sudah di-scan: {tool_name} ({tool_pin})"
                             status_text.color = "orange"
                             page.update()
-                            input_rfid.focus()
+                            force_focus_delayed()
                         elif sudah_scan_nama >= qty_dibutuhkan:
                             # Sudah scan sebanyak qty yang dipinjam
                             status_text.value = f"Sudah di-scan {sudah_scan_nama}x: {tool_name}"
                             status_text.color = "orange"
                             page.update()
-                            input_rfid.focus()
+                            force_focus_delayed()
                         else:
                             scanned_tools.append({"name": tool_name, "pin": tool_pin, "laci": tool_laci})
                             status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
@@ -678,15 +689,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         status_text.value = f"Bukan pinjaman Anda: {tool_name}"
                         status_text.color = "red"
                         page.update()
-                        input_rfid.focus()
+                        force_focus_delayed()
                 else:
                     status_text.value = "Tag Tidak Dikenal!"
                     status_text.color = "red"
                     page.update()
-                    input_rfid.focus()
+                    force_focus_delayed()
             except Exception as err:
                 print("DB Error:", err)
-                input_rfid.focus()
+                force_focus_delayed()
 
         TINGGI_PANEL = 500
         scan_area = ft.Container(
@@ -748,18 +759,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             )
         )
         
-        # 🔥 KUNCI UTAMA: Penjaga fokus abadi (seperti di show_scan_tag_alat tapi dilooping)
-        def keep_focus():
-            while state.get("aktif"):
-                time.sleep(0.5)
-                if state.get("aktif"):
-                    try:
-                        input_rfid.focus()
-                        page.update()
-                    except:
-                        pass
-
-        threading.Thread(target=keep_focus, daemon=True).start()
+        force_focus_delayed()
 
     # ------------------------------------------------------------------
     # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
