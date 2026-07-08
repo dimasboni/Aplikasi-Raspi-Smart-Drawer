@@ -573,8 +573,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             color="transparent",
             bgcolor="transparent",
             cursor_color="transparent",
-            # Jika blur/kehilangan fokus, langsung minta fokus kembali
-            on_blur=lambda e: input_rfid.focus() if state.get("aktif") else None,
+            # Jika blur/kehilangan fokus, langsung minta fokus kembali dengan benar
+            on_blur=lambda e: force_focus_delayed() if state.get("aktif") else None,
         )
 
         def update_ui():
@@ -712,8 +712,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             ),
             width=300, height=TINGGI_PANEL, padding=20, bgcolor="#EFF6FF", border_radius=20, 
             border=ft.border.all(3, BLUE_SENSOR), alignment=ft.Alignment(0, 0),
-            # Klik area scan → kembalikan fokus ke input
-            on_click=lambda _: input_rfid.focus() if state["aktif"] else None,
+            # Klik area scan → kembalikan fokus ke input dengan benar
+            on_click=lambda _: force_focus_delayed() if state.get("aktif") else None,
         )
 
         main_layout = ft.Row(
