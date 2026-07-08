@@ -579,81 +579,60 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 status_text.value=f"Remove: {alat_dihapus['name']}"
                 status_text.color = "RED"
                 update_ui()
-                input_tag.focus()
 
             if not scanned_tools:
                 list_scanned_ui.controls.append(
                     ft.Container(
                         content=ft.Column(
                             [
-                                ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, size=60, color="#CBD5E1"), # Ikon laci abu-abu elegan
+                                ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, size=60, color="#CBD5E1"),
                                 ft.Text("Belum ada alat yang di-scan...", size=14, color=SUB_TEXT_COLOR, italic=True),
                                 ft.Text("Menunggu input dari reader.", size=12, color=SUB_TEXT_COLOR)
                             ],
                             alignment="center", horizontal_alignment="center", spacing=5
                         ),
-                        height=200, alignment=ft.Alignment(0, 0) # Mengisi bagian tengah dengan pas
+                        height=200, alignment=ft.Alignment(0, 0)
                     )
                 )
-            # 🔥 LOGIKA KAPSUL ALAT (JIKA ADA ISINYA) 🔥
             else:
                 for idx, t in enumerate(scanned_tools):
                     list_scanned_ui.controls.append(
                         ft.Container(
                             content=ft.Row(
                                 [
-                                    # Kapsul Angka Urutan (Kiri)
-                                    ft.Container(
-                                        content=ft.Text(str(idx + 1), weight="bold", color="white"),
-                                        width=32, height=32, bgcolor="#94A3B8", border_radius=16,
-                                        alignment=ft.Alignment(0, 0)
-                                    ),
-                                    # Nama Alat (Tengah)
+                                    ft.Container(content=ft.Text(str(idx + 1), weight="bold", color="white"), width=32, height=32, bgcolor="#94A3B8", border_radius=16, alignment=ft.Alignment(0, 0)),
                                     ft.Text(t["name"], weight="bold", size=18, color=TEXT_COLOR, expand=True),
-                                    # Badge Laci & Pin (Kanan)
                                     ft.Row(
                                         [
-                                            ft.Container(
-                                                content=ft.Text(f"📦 Laci {t['laci']}", size=12, weight="bold", color="#1E293B"),
-                                                bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
-                                            ),
-                                            ft.Container(
-                                                content=ft.Text(f"📍 {t['pin']}", size=12, weight="bold", color="#1E293B"),
-                                                bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
-                                            ),
-                                            ft.IconButton(
-                                                icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
-                                                icon_color="red",
-                                                tooltip="Cancel",
-                                                on_click=lambda e, i=idx: hapus_scanned_item(e, i)
-                                            )
-                                        ],
-                                        spacing=8,
-                                        vertical_alignment="center"
+                                            ft.Container(content=ft.Text(f"📦 Laci {t['laci']}", size=12, weight="bold", color="#1E293B"), bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10),
+                                            ft.Container(content=ft.Text(f"📍 {t['pin']}", size=12, weight="bold", color="#1E293B"), bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10),
+                                            ft.IconButton(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE, icon_color="red", tooltip="Cancel", on_click=lambda e, i=idx: hapus_scanned_item(e, i))
+                                        ], spacing=8, vertical_alignment="center"
                                     )
-                                ],
-                                alignment="spaceBetween"
-                            ),
-                            padding=15, bgcolor="white", border_radius=12,
-                            border=ft.border.all(1, "#E2E8F0")
+                                ], alignment="spaceBetween"
+                            ), padding=15, bgcolor="white", border_radius=12, border=ft.border.all(1, "#E2E8F0")
                         )
                     )
             page.update()
 
-        status_text = ft.Text(
-            "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center"
-        )
+        status_text = ft.Text("Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center")
 
-        def proses_scan(e, simu_uid=None):
+        def proses_scan_dari_input(e):
+            """Dipanggil saat TextField menerima Enter dari RFID reader."""
             if not state["aktif"]: return
-            
-            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
-            input_tag.value = ""
+            uid_tag = str(input_rfid.value).strip()
+            # Bersihkan TextField agar siap untuk scan berikutnya
+            input_rfid.value = ""
+            page.update()
             
             if not uid_tag:
-                page.update()
-                input_tag.focus()
                 return
+            proses_scan(uid_tag)
+
+        input_rfid.on_submit = proses_scan_dari_input
+
+        def proses_scan(uid_tag):
+            if not state["aktif"]: return
 
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:

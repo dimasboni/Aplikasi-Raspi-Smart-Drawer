@@ -622,9 +622,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                     )
             page.update()
-            # ✅ KUNCI UTAMA: Selalu kembalikan fokus ke hidden TextField setelah update
-            if state.get("aktif"):
-                input_rfid.focus()
 
         status_text = ft.Text("Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center")
 
@@ -634,6 +631,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             uid_tag = str(input_rfid.value).strip()
             # Bersihkan TextField agar siap untuk scan berikutnya
             input_rfid.value = ""
+            page.update()
+            
             if not uid_tag:
                 return
             proses_scan(uid_tag)
@@ -748,10 +747,19 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 ]
             )
         )
-        # Paksa fokus ke hidden TextField setelah halaman tampil
-        threading.Thread(
-            target=lambda: [time.sleep(0.3), input_rfid.focus(), page.update()]
-        ).start()
+        
+        # 🔥 KUNCI UTAMA: Penjaga fokus abadi (seperti di show_scan_tag_alat tapi dilooping)
+        def keep_focus():
+            while state.get("aktif"):
+                time.sleep(0.5)
+                if state.get("aktif"):
+                    try:
+                        input_rfid.focus()
+                        page.update()
+                    except:
+                        pass
+
+        threading.Thread(target=keep_focus, daemon=True).start()
 
     # ------------------------------------------------------------------
     # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
