@@ -694,14 +694,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as err:
                 print("DB Error:", err)
                 
-            def kembalikan_fokus():
-                time.sleep(0.1) # Beri nafas Flet 100ms agar layar selesai digambar
+            async def kembalikan_fokus_segera(e=None):
+                await asyncio.sleep(0.2)  # Jeda 200ms, tunggu layar selesai merender kapsul baru
                 if state["aktif"]:
-                    input_tag.value = ""
-                    input_tag.focus()
-                    page.update()
+                    input_tag.value = ""  # Baru kosongkan kotak input di sini
+                    input_tag.focus()     # Tarik paksa kursor
+                    page.update()         # Segarkan layar terakhir kalinya
 
-            threading.Thread(target=kembalikan_fokus).start()
+            # Eksekusi task-nya menggunakan sistem antrean Flet!
+            page.run_task(kembalikan_fokus_segera)
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
