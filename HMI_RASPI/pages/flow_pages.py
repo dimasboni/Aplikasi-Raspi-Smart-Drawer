@@ -564,18 +564,20 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             "Selesai & Konfirmasi", GREEN_SENSOR, tampilkan_dialog_konfirmasi, width=350, height=50, disabled=True,
         )
 
-        # 🔑 Hidden TextField — penerima karakter dari RFID reader USB HID
-        input_rfid = ft.TextField(
-            autofocus=True,
-            width=1,
-            height=1,
-            border=ft.InputBorder.NONE,
-            color="transparent",
-            bgcolor="transparent",
-            cursor_color="transparent",
-            # Jika blur/kehilangan fokus, langsung minta fokus kembali dengan benar
-            on_blur=lambda e: force_focus_delayed() if state.get("aktif") else None,
-        )
+        rfid_buffer = []
+
+        def handle_keyboard(e: ft.KeyboardEvent):
+            if not state.get("aktif"): return
+            if e.key == "Enter":
+                uid_tag = "".join(rfid_buffer).strip()
+                rfid_buffer.clear()
+                if uid_tag:
+                    proses_scan(uid_tag)
+            else:
+                if len(e.key) == 1:
+                    rfid_buffer.append(e.key)
+
+        page.on_keyboard_event = handle_keyboard
 
         def update_ui():
             list_scanned_ui.controls.clear()
@@ -622,33 +624,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                     )
             page.update()
-            force_focus_delayed()
 
         status_text = ft.Text("Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center")
-
-        def force_focus_delayed():
-            def _delayed():
-                time.sleep(0.1)
-                if state.get("aktif"):
-                    try:
-                        input_rfid.focus()
-                        page.update()
-                    except: pass
-            threading.Thread(target=_delayed, daemon=True).start()
-
-        def proses_scan_dari_input(e):
-            """Dipanggil saat TextField menerima Enter dari RFID reader."""
-            if not state["aktif"]: return
-            uid_tag = str(input_rfid.value).strip()
-            # Bersihkan TextField agar siap untuk scan berikutnya
-            input_rfid.value = ""
-            page.update()
-            
-            if not uid_tag:
-                return
-            proses_scan(uid_tag)
-
-        input_rfid.on_submit = proses_scan_dari_input
 
         def proses_scan(uid_tag):
             """Memproses UID tag yang sudah lengkap dari reader."""
@@ -661,43 +638,27 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                 if res:
                     tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
                     
-                    # Hitung berapa kali alat ini sudah di-scan
-                    sudah_scan_nama = sum(1 for item in scanned_tools if item["name"] == tool_name)
-                    qty_dibutuhkan = borrowed_qty.get(tool_name, 0)
-                    
                     if tool_name in borrowed_names:
-                        # Cek apakah pin spesifik ini sudah di-scan
-                        sudah_ada_pin = any(item["pin"] == tool_pin for item in scanned_tools)
-                        
-                        if sudah_ada_pin:
-                            status_text.value = f"Pin ini sudah di-scan: {tool_name} ({tool_pin})"
-                            status_text.color = "orange"
-                            page.update()
-                            force_focus_delayed()
-                        elif sudah_scan_nama >= qty_dibutuhkan:
-                            # Sudah scan sebanyak qty yang dipinjam
-                            status_text.value = f"Sudah di-scan {sudah_scan_nama}x: {tool_name}"
-                            status_text.color = "orange"
-                            page.update()
-                            force_focus_delayed()
-                        else:
+                        sudah_ada = any(item["pin"] == tool_pin for item in scanned_tools)
+                        if not sudah_ada:
                             scanned_tools.append({"name": tool_name, "pin": tool_pin, "laci": tool_laci})
                             status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
                             status_text.color = "#10B981"
                             update_ui()
+                        else:
+                            status_text.value = f"Sudah di-scan: {tool_name}"
+                            status_text.color = "orange"
+                            page.update()
                     else:
                         status_text.value = f"Bukan pinjaman Anda: {tool_name}"
                         status_text.color = "red"
                         page.update()
-                        force_focus_delayed()
                 else:
                     status_text.value = "Tag Tidak Dikenal!"
                     status_text.color = "red"
                     page.update()
-                    force_focus_delayed()
             except Exception as err:
                 print("DB Error:", err)
-                force_focus_delayed()
 
         TINGGI_PANEL = 500
         scan_area = ft.Container(
@@ -712,8 +673,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             ),
             width=300, height=TINGGI_PANEL, padding=20, bgcolor="#EFF6FF", border_radius=20, 
             border=ft.border.all(3, BLUE_SENSOR), alignment=ft.Alignment(0, 0),
-            # Klik area scan → kembalikan fokus ke input dengan benar
-            on_click=lambda _: force_focus_delayed() if state.get("aktif") else None,
         )
 
         main_layout = ft.Row(
@@ -747,19 +706,17 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.add(
             build_standard_layout(
                 ft.Column(
-                    [content_card, input_rfid],
+                    [content_card],
                     horizontal_alignment="center",
                     alignment="center",
                 ),
                 back_func=lambda _: [
                     state.update({"aktif": False}), 
-                    setattr(input_rfid, "disabled", True), 
+                    setattr(page, "on_keyboard_event", None), 
                     nav["show_list_pinjaman_user"]()
                 ]
             )
         )
-        
-        force_focus_delayed()
 
     # ------------------------------------------------------------------
     # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
