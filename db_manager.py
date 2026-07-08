@@ -66,23 +66,43 @@ def get_tools_from_db(page_number):
     return tools_list
 
 def get_borrowed_tools(username):
-    """Mendapatkan daftar alat yang SEDANG dipinjam oleh user tertentu."""
+    """Mendapatkan daftar alat yang SEDANG dipinjam oleh user tertentu.
+    Jika alat yang sama dipinjam 2x, maka akan muncul 2x di list (qty benar).
+    """
     borrowed_list = []
-    returned = set()
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
-            # Cek log dari terbaru ke terlama
-            cursor.execute("SELECT nama_alat, status FROM log_peminjaman WHERE nama_user = ? ORDER BY id DESC", (username,))
-            for alat, status in cursor.fetchall():
-                if status == "KEMBALI": 
-                    returned.add(alat)
-                elif status == "PINJAM" and alat not in returned:
-                    if alat not in borrowed_list:
-                        borrowed_list.append(alat)
-    except Exception as e: 
+            # Ambil semua log dari terlama ke terbaru
+            cursor.execute(
+                "SELECT nama_alat, status FROM log_peminjaman WHERE nama_user = ? ORDER BY id ASC",
+                (username,)
+            )
+            rows = cursor.fetchall()
+
+        # Hitung net qty per nama alat: PINJAM +1, KEMBALI -1
+        qty_map = {}
+        for alat, status in rows:
+            if alat not in qty_map:
+                qty_map[alat] = 0
+            if status == "PINJAM":
+                qty_map[alat] += 1
+            elif status == "KEMBALI":
+                qty_map[alat] = max(0, qty_map[alat] - 1)
+
+        # Buat list sesuai urutan pertama kali dipinjam, masukkan sebanyak qty aktif
+        urutan = []
+        for alat, status in rows:
+            if alat not in urutan:
+                urutan.append(alat)
+
+        for alat in urutan:
+            qty = qty_map.get(alat, 0)
+            for _ in range(qty):
+                borrowed_list.append(alat)
+
+    except Exception as e:
         print(f"Error get borrowed tools: {e}")
-    borrowed_list.reverse() 
     return borrowed_list
 
 # ==============================================================================

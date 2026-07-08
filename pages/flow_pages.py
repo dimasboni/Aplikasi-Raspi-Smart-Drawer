@@ -493,8 +493,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             "waktu_terakhir": 0.0
         } 
         
+        # borrowed adalah list nama alat (bisa duplikat jika qty > 1)
+        # Contoh: ["Tang", "Tang", "Obeng"] artinya Tang dipinjam 2x
         borrowed_names = [b["name"] if isinstance(b, dict) else b for b in borrowed]
-        total_pinjaman = len(borrowed_names)
+        total_pinjaman = len(borrowed_names)  # total unit yang harus dikembalikan
+        
+        # Hitung qty per nama untuk validasi scan
+        borrowed_qty = {}
+        for nm in borrowed_names:
+            borrowed_qty[nm] = borrowed_qty.get(nm, 0) + 1
 
         list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=220)
         teks_indikator = ft.Text(f"0/{total_pinjaman} tools scanned", weight="bold", color=SUB_TEXT_COLOR, size=16)
@@ -613,23 +620,39 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             if not state["aktif"]: return
             uid_tag = simu_uid
             
+            # 🔄 Reset buffer agar tag berikutnya dibaca bersih
+            state["buffer_rfid"] = ""
+            state["waktu_terakhir"] = 0.0
+            
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
                     res = conn.cursor().execute("SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?", (uid_tag,)).fetchone()
                     
                 if res:
                     tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
+                    
+                    # Hitung berapa kali alat ini sudah di-scan
+                    sudah_scan_nama = sum(1 for item in scanned_tools if item["name"] == tool_name)
+                    qty_dibutuhkan = borrowed_qty.get(tool_name, 0)
+                    
                     if tool_name in borrowed_names:
-                        sudah_ada = any(item["pin"] == tool_pin for item in scanned_tools)
-                        if not sudah_ada:
+                        # Cek apakah pin spesifik ini sudah di-scan
+                        sudah_ada_pin = any(item["pin"] == tool_pin for item in scanned_tools)
+                        
+                        if sudah_ada_pin:
+                            status_text.value = f"Pin ini sudah di-scan: {tool_name} ({tool_pin})"
+                            status_text.color = "orange"
+                            page.update()
+                        elif sudah_scan_nama >= qty_dibutuhkan:
+                            # Sudah scan sebanyak qty yang dipinjam
+                            status_text.value = f"Sudah di-scan {sudah_scan_nama}x: {tool_name}"
+                            status_text.color = "orange"
+                            page.update()
+                        else:
                             scanned_tools.append({"name": tool_name, "pin": tool_pin, "laci": tool_laci})
                             status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
                             status_text.color = "#10B981"
                             update_ui()
-                        else:
-                            status_text.value = f"Sudah di-scan: {tool_name}"
-                            status_text.color = "orange"
-                            page.update()
                     else:
                         status_text.value = f"Bukan pinjaman Anda: {tool_name}"
                         status_text.color = "red"
@@ -655,9 +678,10 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             else:
                 if len(e.key) == 1: # Hanya tangkap karakter tunggal (angka)
                     # Cek jeda waktu ketikan
-                    if state["buffer_rfid"] != "" and (waktu_sekarang - state["waktu_terakhir"] > 0.1):
+                    # Threshold 300ms: cukup cepat untuk RFID reader, tapi lambat untuk manusia
+                    if state["buffer_rfid"] != "" and (waktu_sekarang - state["waktu_terakhir"] > 0.3):
                         print("🚨 Ketikan lambat (manusia) terdeteksi! Buffer di-reset.")
-                        state["buffer_rfid"] = "" # Hapus isi buffer jika jeda lebih dari 100ms
+                        state["buffer_rfid"] = "" # Hapus isi buffer jika jeda lebih dari 300ms
                     
                     state["buffer_rfid"] += e.key
                     state["waktu_terakhir"] = waktu_sekarang
