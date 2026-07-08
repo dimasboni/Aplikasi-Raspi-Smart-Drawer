@@ -639,6 +639,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                     )
             page.update()
+            input_tag.focus()
 
         status_text = ft.Text(
             "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center"
