@@ -211,7 +211,7 @@ def autosync_user():
             print(f"⚠️ [AUTO-SYNC] Gagal koneksi ke server web: {err}")
 
         # Tunda selama 180 detik (3 menit) sebelum mengecek lagi
-        time.sleep(180) 
+        time.sleep(30) 
 
 def jalankan_autosync_background():
     """Memanggil robot_autosync_user ke dalam thread agar UI tidak freeze"""
