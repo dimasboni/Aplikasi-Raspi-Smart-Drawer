@@ -694,10 +694,14 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as err:
                 print("DB Error:", err)
                 
-            page.update()
-            input_tag.value = ""
-            input_tag.focus()
-            page.update()
+            def kembalikan_fokus():
+                time.sleep(0.1) # Beri nafas Flet 100ms agar layar selesai digambar
+                if state["aktif"]:
+                    input_tag.value = ""
+                    input_tag.focus()
+                    page.update()
+
+            threading.Thread(target=kembalikan_fokus).start()
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
