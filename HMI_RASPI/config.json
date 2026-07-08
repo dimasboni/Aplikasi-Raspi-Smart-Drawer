@@ -1,5 +1,14 @@
-{    "mqqt_broker": "192.168.1.10",
-     "mqqt_port": 1883,
-     "db_host": "192.168.1.5",
-     "cabinet_name": "Smart Drawer-01"
+{
+    "mqqt_broker": "localhost",
+    "mqqt_port": 1883,
+    "db_host": "10.222.253.208:8000",
+    "cabinet_id": "SD-01",
+    "cabinet_name": "Smart Drawer-01",
+    "lab_name": "Lab_mikrokontroler",
+    "drawer_capacity": {
+        "1": 18,
+        "2": 18,
+        "3": 16,
+        "4": 16
+    }
 }
