@@ -305,9 +305,15 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     page.update()
                     
                     # Lanjut simpan ke database dan proses barang berikutnya
-                    simpan_log_pengembalian(session_data["user_now"], tool_name)
+                    rfid_asli = current_item.get("rfid_tag", None)
+                    simpan_log_pengembalian(session_data["user_now"], tool_name, rfid_asli)
                     await asyncio.sleep(1.5)
-                    show_kembali_position_selection(scanned_tools, index + 1)
+                    
+                    if index + 1 < len(scanned_tools):
+                        next_pin = scanned_tools[index + 1]["pin"]
+                        nav["show_visual_sensor_kembali"](scanned_tools, index + 1, next_pin)
+                    else:
+                        show_all_done_kembali()
                     return
                 
                 teks_countdown.value = f"{waktu_maksimal} seconds"
@@ -491,6 +497,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         # borrowed adalah list nama alat (bisa duplikat jika qty > 1)
         # Contoh: ["Tang", "Tang", "Obeng"] artinya Tang dipinjam 2x
         borrowed_names = [b["name"] if isinstance(b, dict) else b for b in borrowed]
+        borrowed_rfids = [str(b["rfid_tag"]).strip() for b in borrowed if isinstance(b, dict) and b.get("rfid_tag")]
         total_pinjaman = len(borrowed_names)  # total unit yang harus dikembalikan
         
         # Hitung qty per nama untuk validasi scan
@@ -562,10 +569,18 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             "Selesai & Konfirmasi", GREEN_SENSOR, tampilkan_dialog_konfirmasi, width=350, height=50, disabled=True,
         )
 
+        import time
+        last_keystroke_time = [0]
         rfid_buffer = []
 
         def handle_keyboard(e: ft.KeyboardEvent):
             if not state.get("aktif"): return
+            
+            now = time.time()
+            if now - last_keystroke_time[0] > 0.1:
+                rfid_buffer.clear()
+            last_keystroke_time[0] = now
+
             if e.key == "Enter":
                 uid_tag = "".join(rfid_buffer).strip()
                 rfid_buffer.clear()
@@ -631,15 +646,29 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-                    res = conn.cursor().execute("SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?", (uid_tag,)).fetchone()
+                    res = conn.cursor().execute("SELECT name, mqtt_topic, page, total FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?", (uid_tag,)).fetchone()
                     
                 if res:
-                    tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
+                    tool_name, tool_pin, tool_laci, tool_total = res[0], res[1], res[2], res[3]
                     
-                    if tool_name in borrowed_names:
+                    if tool_total == 1:
+                        status_text.value = f"Alat ini masih di laci ({tool_pin})!"
+                        status_text.color = "red"
+                        page.update()
+                        return
+                        
+                    if uid_tag in borrowed_rfids or tool_name in borrowed_names:
                         sudah_ada = any(item["pin"] == tool_pin for item in scanned_tools)
                         if not sudah_ada:
-                            scanned_tools.append({"name": tool_name, "pin": tool_pin, "laci": tool_laci})
+                            # Jika kita menemukan dari RFID, berarti 100% valid. 
+                            # Tapi jika kita hanya fallback ke tool_name, kita tetap terima (untuk legacy data yang belum punya RFID)
+                            if borrowed_rfids and uid_tag not in borrowed_rfids:
+                                status_text.value = f"RFID {uid_tag} bukan yang Anda pinjam!"
+                                status_text.color = "red"
+                                page.update()
+                                return
+
+                            scanned_tools.append({"name": tool_name, "pin": tool_pin, "laci": tool_laci, "rfid_tag": uid_tag})
                             status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
                             status_text.color = "#10B981"
                             update_ui()
@@ -767,7 +796,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                         status_text.value = "Verifikasi Sukses!"
                         status_text.color = GREEN_SENSOR
                         page.update()
-                        simpan_log(session_data["user_now"], nama_di_db, "PINJAM")
+                        simpan_log(session_data["user_now"], nama_di_db, "PINJAM", uid_tag)
                         await asyncio.sleep(0.5)
                         keluar_halaman(lambda: show_all_done(nama_di_db))
                     else:

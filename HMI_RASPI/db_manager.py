@@ -66,20 +66,21 @@ def get_tools_from_db(page_number):
     return tools_list
 
 def get_borrowed_tools(username):
-    """Mendapatkan daftar alat yang SEDANG dipinjam oleh user tertentu."""
+    """Mendapatkan daftar alat yang SEDANG dipinjam oleh user tertentu beserta RFID-nya."""
     borrowed_list = []
     returned = set()
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
-            # Cek log dari terbaru ke terlama
-            cursor.execute("SELECT nama_alat, status FROM log_peminjaman WHERE nama_user = ? ORDER BY id DESC", (username,))
-            for alat, status in cursor.fetchall():
+            cursor.execute("SELECT nama_alat, status, rfid_tag FROM log_peminjaman WHERE nama_user = ? ORDER BY id DESC", (username,))
+            for alat, status, rfid_tag in cursor.fetchall():
+                # Jika log lama tidak punya rfid_tag, kita terpaksa pakai alat sebagai kunci
+                kunci = rfid_tag if rfid_tag else alat
                 if status == "KEMBALI": 
-                    returned.add(alat)
-                elif status == "PINJAM" and alat not in returned:
-                    if alat not in borrowed_list:
-                        borrowed_list.append(alat)
+                    returned.add(kunci)
+                elif status == "PINJAM" and kunci not in returned:
+                    borrowed_list.append({"name": alat, "rfid_tag": rfid_tag})
+                    returned.add(kunci)
     except Exception as e: 
         print(f"Error get borrowed tools: {e}")
     borrowed_list.reverse() 
@@ -105,12 +106,12 @@ def kirim_ke_server_niko(log_id, user_name, tool_name, status):
     
     threading.Thread(target=tugas_kirim).start()
 
-def simpan_log(user_name, tool_name, status):
+def simpan_log(user_name, tool_name, status, rfid_tag=None):
     """Mencatat aktivitas PINJAM ke database lokal dan mengirim via API."""
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status, status_sync) VALUES (?, ?, ?, 0)", (user_name, tool_name, status))
+            cursor.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status, status_sync, rfid_tag) VALUES (?, ?, ?, 0, ?)", (user_name, tool_name, status, rfid_tag))
             log_id = cursor.lastrowid
             conn.commit()
         if status == "PINJAM":
@@ -120,12 +121,12 @@ def simpan_log(user_name, tool_name, status):
     except Exception as e:
         print(f"Error simpan log: {e}")
 
-def simpan_log_pengembalian(user_name, tool_name):
+def simpan_log_pengembalian(user_name, tool_name, rfid_tag=None):
     """Mencatat aktivitas KEMBALI ke database lokal dan mengirim via API."""
     try:
         with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status, status_sync) VALUES (?, ?, ?, 0)", (user_name, tool_name, "KEMBALI"))
+            cursor.execute("INSERT INTO log_peminjaman (nama_user, nama_alat, status, status_sync, rfid_tag) VALUES (?, ?, ?, 0, ?)", (user_name, tool_name, "KEMBALI", rfid_tag))
             log_id = cursor.lastrowid
             conn.commit()
 
@@ -211,7 +212,7 @@ def autosync_user():
             print(f"⚠️ [AUTO-SYNC] Gagal koneksi ke server web: {err}")
 
         # Tunda selama 180 detik (3 menit) sebelum mengecek lagi
-        time.sleep(30) 
+        time.sleep(180) 
 
 def jalankan_autosync_background():
     """Memanggil robot_autosync_user ke dalam thread agar UI tidak freeze"""
