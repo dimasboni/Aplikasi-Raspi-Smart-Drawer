@@ -1,0 +1,1433 @@
+"""
+flow_pages.py
+=============
+Berisi alur transaksi (flow) yang melibatkan RFID dan Sensor IR:
+  - show_rfid_page               : Halaman scan RFID card user/admin
+  - show_position_selection      : Pilih posisi slot alat
+  - show_visual_sensor_flow      : Tunggu sensor IR saat AMBIL alat
+  - show_scan_tag_alat           : Scan tag RFID alat saat peminjaman
+  - show_all_done                : Konfirmasi peminjaman berhasil
+  - show_scan_kembali            : Scan tag RFID alat saat pengembalian
+  - show_konfirmasi_kembali      : Konfirmasi daftar alat yang dikembalikan
+  - show_visual_sensor_kembali   : Tunggu sensor IR saat TARUH alat
+  - show_all_done_kembali        : Konfirmasi pengembalian berhasil
+
+Cara pemakaian:
+    from pages.flow_pages import register_flow_pages
+    register_flow_pages(page, session_data, nav)
+"""
+
+import asyncio
+import time
+import threading
+import sqlite3
+from tkinter import dialog
+
+import flet as ft
+
+from config import (
+    DRAWER_CAPACITY,
+    TEXT_COLOR,
+    SUB_TEXT_COLOR,
+    SHADOW_COLOR,
+    BLUE_SENSOR,
+    GREEN_SENSOR,
+)
+from db_manager import (
+    simpan_log,
+    simpan_log_pengembalian,
+    get_borrowed_tools,
+    get_tool_positions,
+)
+from sensor_manager import status_sensor_realtime, target_expected
+from ui_komponen import create_filled_button, build_standard_layout
+from hardware_manager import buka_laci_otomatis, buzzer_off
+
+
+def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
+    """
+    Mendaftarkan semua fungsi flow ke dalam dict 'nav'.
+    nav keys yang ditambahkan:
+        nav['show_rfid_page']
+        nav['show_position_selection']
+        nav['show_visual_sensor_flow']
+        nav['show_scan_tag_alat']
+        nav['show_all_done']
+        nav['show_scan_kembali']
+        nav['show_konfirmasi_kembali']
+        nav['show_visual_sensor_kembali']
+        nav['show_all_done_kembali']
+    """
+
+    # ------------------------------------------------------------------
+    # SHOW ALL DONE (peminjaman sukses)
+    # ------------------------------------------------------------------
+    def show_all_done(tool_name):
+        page.clean()
+        success_card = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Image(src="/success.png", width=100, height=100),
+                    ft.Text(
+                        "You're all set!", size=28, weight="bold", color=GREEN_SENSOR
+                    ),
+                    ft.Text(
+                        f"The {tool_name} is all yours.", size=16, color="black"
+                    ),
+                    ft.Container(height=10),
+                    ft.ProgressRing(
+                        width=25, height=25, color=GREEN_SENSOR, stroke_width=3
+                    ),
+                    ft.Text("Returning to main screen...", size=12, color="grey"),
+                ],
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            width=450,
+            height=400, 
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
+            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-130),
+            alignment=ft.Alignment(0, 0),
+        )
+        page.add(
+            build_standard_layout(
+                ft.Container(content=success_card, alignment=ft.Alignment(0, 0))
+            )
+        )
+
+        async def auto():
+            await asyncio.sleep(4.0)
+            nav["show_home"]()
+
+        page.run_task(auto)
+
+    # ------------------------------------------------------------------
+    # SHOW ALL DONE KEMBALI (pengembalian sukses)
+    # ------------------------------------------------------------------
+    def show_all_done_kembali():
+        page.clean()
+        success_card = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Image(src="/success_kembali.png", width=100, height=100),
+                    ft.Text(
+                        "You're good to go!",
+                        size=28,
+                        weight="bold",
+                        color="#3B82F6",
+                    ),
+                    ft.Text(
+                        "Everything is inside the drawer", size=16, color="black"
+                    ),
+                    ft.Container(height=10),
+                    ft.ProgressRing(
+                        width=25, height=25, color="#3B82F6", stroke_width=3
+                    ),
+                    ft.Text("Closing session...", size=12, color="grey"),
+                ],
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            width=450,
+            height=400,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
+            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-130),
+            alignment=ft.Alignment(0, 0),
+        )
+        page.add(
+            build_standard_layout(
+                ft.Container(content=success_card, alignment=ft.Alignment(0, 0))
+            )
+        )
+
+        async def auto():
+            await asyncio.sleep(4.0)
+            nav["show_home"]()
+
+        page.run_task(auto)
+
+    # ------------------------------------------------------------------
+    # SHOW VISUAL SENSOR KEMBALI (tunggu sensor saat taruh)
+    # ------------------------------------------------------------------
+    def show_visual_sensor_kembali(scanned_tools, index, pin_terpilih):
+        page.clean()
+        tool_name = scanned_tools[index]["name"]
+        laci_tujuan = scanned_tools[index]["laci"]
+        total_barang = len(scanned_tools)
+        barang_ke = index + 1 
+        indicator_circle = ft.Container(
+            content=ft.Text(str(pin_terpilih), size =45, weight="bold", color="white"),
+            width=120,
+            height=120,
+            bgcolor=BLUE_SENSOR,
+            border_radius=60,
+            alignment=ft.Alignment(0, 0),
+            animate=300,
+        )
+        radar_ring = ft.ProgressRing( 
+            width=150, 
+            height=150, 
+            stroke_width=8,
+            color=BLUE_SENSOR,
+            bgcolor="#E3F2FD",
+        )
+        radar_stack = ft.Stack(
+            [
+                radar_ring, 
+                ft.Container(
+                    content=indicator_circle, 
+                    top=15, 
+                    left=15
+                )
+            ],
+            width=150, 
+            height=150
+        )
+
+        status_txt = ft.Text(
+            f"RETURN THE {tool_name.upper()} ({barang_ke}/{total_barang})",
+            size=22,
+            color=BLUE_SENSOR,
+            weight="bold",
+            text_align="center",
+        )
+        sub_status_txt = ft.Text(
+            f"DRAWER {laci_tujuan} IS OPEN. PLEASE RETURN THE TOOL TO POSITION {pin_terpilih}.",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
+        )
+        teks_countdown = ft.Text(
+            "15 seconds",
+            color="red",
+            size=24, 
+            weight="bold"
+        )
+        box_countdown = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24),
+                    teks_countdown
+                ],
+                alignment="center",
+                spacing=10,
+            ),
+            bgcolor="#FEE2E2",
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            border_radius=20, 
+            width=220,
+            animate=300
+        )
+        sensor_box = ft.Container(
+            content=ft.Column(
+                [
+                    radar_stack,
+                    ft.Container(height=10),
+                    status_txt,
+                    sub_status_txt, 
+                    ft.Container(height=10), 
+                    box_countdown, 
+                ],
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            width=700,
+            height=420, 
+            bgcolor="white",
+            border=ft.border.all(3, BLUE_SENSOR),
+            border_radius=20, 
+            alignment=ft.Alignment(0, 0),
+            shadow=ft.BoxShadow(
+                blur_radius=25,
+                color=SHADOW_COLOR
+            ),
+            animate=300,
+            margin=ft.margin.only(top=-150)
+        )
+
+        state = {"aktif": True}
+
+        async def pantau_sensor_ditaruh():
+            buka_laci_otomatis(laci_tujuan)
+            kunci_unik = f"{laci_tujuan}_{pin_terpilih}"
+            waktu_maksimal = 15
+
+            # 🔥 TITIP PESAN KE SENSOR MANAGER
+            target_expected["laci"] = int(laci_tujuan)
+            target_expected["pin"] = pin_terpilih
+            target_expected["action"] = "TARUH"
+            target_expected["lockdown"] = False
+            target_expected["wrong_pin"] = None
+
+            while state["aktif"] and waktu_maksimal > 0:
+                
+                # 🛡️ STEP 1: CEK LOCKDOWN (Menunggu user mencabut alat asing yg salah ditaruh)
+                if target_expected.get("lockdown"):
+                    indicator_circle.bgcolor = "red"
+                    teks_countdown.color = "red"
+                    # UI BAHASA INGGRIS
+                    sub_status_txt.value = f"🚨 WRONG POSITION! Please remove the tool from {target_expected.get('wrong_pin')}!"
+                    sub_status_txt.color = "red"
+                    sub_status_txt.weight = "bold"
+                    page.update()
+                    await asyncio.sleep(0.5)
+                    continue 
+                else:
+                    indicator_circle.bgcolor = BLUE_SENSOR
+                    teks_countdown.color = "red" 
+                    sub_status_txt.value = f"DRAWER {laci_tujuan} IS OPEN. PLEASE RETURN THE TOOL TO POSITION {pin_terpilih}."
+                    sub_status_txt.color = SUB_TEXT_COLOR
+                    sub_status_txt.weight = "normal"
+
+                # ✅ STEP 2: JIKA ALAT BERHASIL DITARUH (Sensor = 1)
+                if status_sensor_realtime.get(kunci_unik, 0) == 1:
+                    state["aktif"] = False
+                    
+                    target_expected["laci"] = None
+                    target_expected["pin"] = None
+                    target_expected["action"] = None
+                    target_expected["lockdown"] = False
+                    target_expected["wrong_pin"] = None 
+                    buzzer_off() 
+                    
+                    indicator_circle.bgcolor = GREEN_SENSOR
+                    sub_status_txt.value = "Tool returned successfully!"
+                    sub_status_txt.color = GREEN_SENSOR
+                    page.update()
+                    
+                    # Lanjut simpan ke database dan proses barang berikutnya
+                    simpan_log_pengembalian(session_data["user_now"], tool_name)
+                    await asyncio.sleep(1.5)
+                    show_kembali_position_selection(scanned_tools, index + 1)
+                    return
+                
+                teks_countdown.value = f"{waktu_maksimal} seconds"
+                page.update()
+                await asyncio.sleep(1)
+                waktu_maksimal -= 1
+                
+            # ❌ STEP 3: TIMEOUT
+            if state["aktif"]:
+                state["aktif"] = False
+                target_expected["laci"] = None
+                target_expected["pin"] = None
+                target_expected["action"] = None
+                target_expected["lockdown"] = False
+                target_expected["wrong_pin"] = None 
+                buzzer_off() 
+                
+                print("[TIMEOUT] User timeout on return.")
+                nav["show_home"]()
+
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [sensor_box],
+                    alignment="center",
+                    horizontal_alignment="center",
+                )
+            )
+        )
+        page.run_task(pantau_sensor_ditaruh)
+
+    # ==========================================================================
+    # show_kembali_position_selection
+    # ==========================================================================
+
+    def show_kembali_position_selection(scanned_tools, index):
+        if index >= len(scanned_tools):
+            show_all_done_kembali()
+            return
+        page.clean()
+
+        current_item = scanned_tools[index]
+        tool_name = current_item["name"]
+        pin_tujuan = current_item["pin"]
+        laci_tujuan = current_item["laci"]
+
+        jumlah_slot = DRAWER_CAPACITY.get(laci_tujuan, 16)
+        pos_grid = ft.GridView(expand=True, max_extent=70, spacing=10)
+
+        for i in range(1, jumlah_slot + 1):
+            kode_pin = f"P{str(i).zfill(2)}"
+
+            if kode_pin == pin_tujuan:
+                kotak = ft.Container(
+                    content=ft.Text(str(i), weight="bold", color="white"),
+                    alignment=ft.Alignment(0, 0),
+                    bgcolor=GREEN_SENSOR,
+                    border_radius=10,
+                    ink=True,
+                    on_click=lambda e, p=kode_pin: show_visual_sensor_kembali(
+                        scanned_tools, index, p
+                    ),
+                )
+            else:
+                kotak = ft.Container(
+                    content=ft.Text(str(i), weight="bold", color="grey"),
+                    alignment=ft.Alignment(0, 0),
+                    bgcolor="#E5E7EB",
+                    border=ft.border.all(2, "#D1D5DB"),
+                    border_radius=10,
+                )
+            pos_grid.controls.append(kotak)
+
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [
+                        ft.Text(
+                            f"Kembalikan {tool_name} ke posisi aslinya",
+                            size=28,
+                            weight="bold",
+                            color=TEXT_COLOR,
+                        ),
+                        ft.Text(
+                            f"Open Drawer {laci_tujuan} taruh di posisi {pin_tujuan}",
+                            size=20,
+                            weight="bold",
+                            color=SUB_TEXT_COLOR,
+                        ),
+                        ft.Container(height=20),
+                        ft.Container(content=pos_grid, height=300, width=600),
+                    ],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
+            )
+        )
+
+    # ------------------------------------------------------------------
+    # SHOW KONFIRMASI KEMBALI
+    # ------------------------------------------------------------------
+    def show_konfirmasi_kembali(scanned_tools):
+        page.clean()
+
+        scanned_tools.sort(key=lambda x: int(x["laci"]))
+
+        list_ui = ft.Column(
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+        )
+
+        for idx, item in enumerate(scanned_tools):
+            list_ui.controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            # Menampilkan nama alat
+                            ft.Text(
+                                f"{idx+1}. {item['name']}",
+                                size=18,
+                                weight="bold",
+                                color="black",
+                            ),
+                            # Menampilkan Rumah aslinya
+                            ft.Text(
+                                f"Kembali ke: laci {item['laci']} - {item['pin']}",
+                                size=14,
+                                color=GREEN_SENSOR,
+                                weight="bold",
+                            ),
+                        ],
+                        alignment="spaceBetween",
+                    ),
+                    padding=15,
+                    bgcolor="#F9FAFB",
+                    border_radius=10,
+                    border=ft.border.all(1, "#E5E7EB"),
+                )
+            )
+
+        content = ft.Column(
+            [
+                ft.Text(
+                    "Are you sure you want to return the following tools?",
+                    size=24,
+                    weight="bold",
+                    color="black",
+                ),
+                ft.Container(height=10),
+                ft.Container(content=list_ui, height=200, width=500),
+                ft.Container(height=20),
+                create_filled_button(
+                    "Lanjut Buka Laci",
+                    "green",
+                    lambda _: show_kembali_position_selection(scanned_tools, 0),
+                    width=400,
+                    height=50,
+                ),
+            ],
+            horizontal_alignment="center",
+            alignment="center",
+        )
+        page.add(
+            build_standard_layout(
+                content,
+                back_func=lambda _: show_scan_kembali(
+                    get_borrowed_tools(session_data["user_now"])
+                ),
+            )
+        )
+
+    # ------------------------------------------------------------------
+    # SHOW SCAN KEMBALI (scan RFID alat saat pengembalian)
+    # ------------------------------------------------------------------
+    def show_scan_kembali(borrowed):
+        page.clean()
+        scanned_tools = []
+        state = {"aktif": True}
+        borrowed_names = [b["name"] if isinstance(b, dict) else b for b in borrowed]
+        total_pinjaman = len(borrowed_names)
+
+        input_tag = ft.TextField(
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
+            on_blur=lambda e: input_tag.focus() if state["aktif"] else None,
+        )
+
+        list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=220)
+        teks_indikator = ft.Text(f"0/{total_pinjaman} tools scanned", weight="bold", color=SUB_TEXT_COLOR, size=16)
+
+        def tampilkan_dialog_konfirmasi(e):
+            list_dialog = ft.Column(spacing=5, height=150, scroll=ft.ScrollMode.AUTO)
+            for idx, t in enumerate(scanned_tools):
+                list_dialog.controls.append(
+                    ft.Container(
+                        content=ft.Row(
+                            [
+                                ft.Text(f"{idx+1}.", weight="bold", color=SUB_TEXT_COLOR),
+                                ft.Text(t["name"], weight="bold", expand=True, color=TEXT_COLOR),
+                                ft.Container(
+                                    content=ft.Text(f"Drawer {t['laci']} - {t['pin']}", size=10, color="white", weight="bold"),
+                                    bgcolor=BLUE_SENSOR, padding=ft.padding.symmetric(horizontal=8, vertical=4), border_radius=10
+                                )
+                            ]
+                        ),
+                        bgcolor="#F1F5F9", padding =10, border_radius=8, border=ft.border.all(1, "black")
+                    )
+                )
+            def tutup_dialog(e):
+                dialog.open=False
+                page.update()
+                input_tag.focus()
+
+            def lanjut_buka_laci(e):
+                dialog.open = False
+                state["aktif"]=False
+                page.update()
+                pin_tujuan_pertama = scanned_tools[0]["pin"]
+                nav["show_visual_sensor_kembali"](scanned_tools, 0, pin_tujuan_pertama)
+
+            dialog = ft.AlertDialog(
+                modal=True,
+                bgcolor="white",
+                title=ft.Text("Confirm Return", weight="bold", color=TEXT_COLOR),
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Text("Are you sure you want to return the following tools?", size=14, color=SUB_TEXT_COLOR),
+                            ft.Container(height=10),
+                            list_dialog
+                        ],
+                        tight=True
+                    ),
+                    width=400
+                ),
+                actions=[
+                    create_filled_button("Cancel", "red", tutup_dialog, height=40),
+                    create_filled_button("Yes, Open Drawer", GREEN_SENSOR, lanjut_buka_laci, height=40)
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                shape=ft.RoundedRectangleBorder(radius=15)
+            )
+
+            page.overlay.append(dialog)
+            dialog.open = True
+            page.update()
+
+        btn_confirm = create_filled_button(
+            "Selesai & Konfirmasi",
+            GREEN_SENSOR,
+            tampilkan_dialog_konfirmasi,
+            width=350,
+            height=50,
+            disabled=True,
+        )
+
+        def update_ui():
+            list_scanned_ui.controls.clear()
+            teks_indikator.value = f"Alat Terverifikasi ({len(scanned_tools)} / {total_pinjaman})"
+            btn_confirm.disabled = len(scanned_tools) == 0
+            
+            def hapus_scanned_item(e, idx):
+                alat_dihapus = scanned_tools.pop(idx)
+                status_text.value=f"Remove: {alat_dihapus['name']}"
+                status_text.color = "RED"
+                update_ui()
+                input_tag.focus()
+
+            if not scanned_tools:
+                list_scanned_ui.controls.append(
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, size=60, color="#CBD5E1"), # Ikon laci abu-abu elegan
+                                ft.Text("Belum ada alat yang di-scan...", size=14, color=SUB_TEXT_COLOR, italic=True),
+                                ft.Text("Menunggu input dari reader.", size=12, color=SUB_TEXT_COLOR)
+                            ],
+                            alignment="center", horizontal_alignment="center", spacing=5
+                        ),
+                        height=200, alignment=ft.Alignment(0, 0) # Mengisi bagian tengah dengan pas
+                    )
+                )
+            # 🔥 LOGIKA KAPSUL ALAT (JIKA ADA ISINYA) 🔥
+            else:
+                for idx, t in enumerate(scanned_tools):
+                    list_scanned_ui.controls.append(
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    # Kapsul Angka Urutan (Kiri)
+                                    ft.Container(
+                                        content=ft.Text(str(idx + 1), weight="bold", color="white"),
+                                        width=32, height=32, bgcolor="#94A3B8", border_radius=16,
+                                        alignment=ft.Alignment(0, 0)
+                                    ),
+                                    # Nama Alat (Tengah)
+                                    ft.Text(t["name"], weight="bold", size=18, color=TEXT_COLOR, expand=True),
+                                    # Badge Laci & Pin (Kanan)
+                                    ft.Row(
+                                        [
+                                            ft.Container(
+                                                content=ft.Text(f"📦 Laci {t['laci']}", size=12, weight="bold", color="#1E293B"),
+                                                bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
+                                            ),
+                                            ft.Container(
+                                                content=ft.Text(f"📍 {t['pin']}", size=12, weight="bold", color="#1E293B"),
+                                                bgcolor="#F1F5F9", padding=ft.padding.symmetric(horizontal=10, vertical=5), border_radius=10
+                                            ),
+                                            ft.IconButton(
+                                                icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
+                                                icon_color="red",
+                                                tooltip="Cancel",
+                                                on_click=lambda e, i=idx: hapus_scanned_item(e, i)
+                                            )
+                                        ],
+                                        spacing=8,
+                                        vertical_alignment="center"
+                                    )
+                                ],
+                                alignment="spaceBetween"
+                            ),
+                            padding=15, bgcolor="white", border_radius=12,
+                            border=ft.border.all(1, "#E2E8F0")
+                        )
+                    )
+            page.update()
+
+        status_text = ft.Text(
+            "Siap Membaca Tag...", size=16, color=BLUE_SENSOR, weight="bold", text_align="center"
+        )
+
+        def proses_scan(e, simu_uid=None):
+            if not state["aktif"]: return
+            
+            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
+            input_tag.value = ""
+            
+            if not uid_tag:
+                page.update()
+                input_tag.focus()
+                return
+
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    res = (
+                        conn.cursor()
+                        .execute(
+                            "SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?",
+                            (uid_tag,)
+                        )
+                        .fetchone()
+                    )
+                    
+                if res:
+                    tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
+                    
+                    # Kita cek ke borrowed_names yang sudah diekstrak di awal
+                    if tool_name in borrowed_names:
+                        sudah_ada = any(item["pin"] == tool_pin for item in scanned_tools)
+                        if not sudah_ada:
+                            scanned_tools.append({
+                                "name": tool_name,
+                                "pin": tool_pin,
+                                "laci": tool_laci,
+                            })
+                            status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
+                            status_text.color = "#10B981" # Hijau
+                            update_ui()
+                        else:
+                            status_text.value = f"Sudah di-scan: {tool_name}"
+                            status_text.color = "orange"
+                    else:
+                        status_text.value = f"Bukan pinjaman Anda: {tool_name}"
+                        status_text.color = "red"
+                else:
+                    status_text.value = "Tag Tidak Dikenal!"
+                    status_text.color = "red"
+                    
+            except Exception as err:
+                print("DB Error:", err)
+                
+            if state["aktif"]:
+                input_tag.value = "" # Kosongkan teksnya dulu
+                
+                # Gunakan threading dengan lambda persis seperti di halaman show_rfid_page milikmu!
+                threading.Thread(
+                    target=lambda: [time.sleep(0.1), input_tag.focus(), page.update()]
+                ).start()
+
+        # Sambungkan ke input_tag andalanmu
+        input_tag.on_submit = proses_scan
+        TINGGI_PANEL = 500
+        # 🔥 Menggabungkan desain Split-Screen dengan UI Aslimu
+        scan_area = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.WIFI_TETHERING, size=70, color=ft.Colors.BLUE),
+                    ft.Text("Area Scan Aktif", size=20, weight="bold", color=TEXT_COLOR),
+                    
+                    # INI DIA TEKS FEEDBACK ASLIMU!
+                    status_text, 
+                    
+                    ft.Text("Tempelkan tag RFID\nalat pada reader", size=14, color=SUB_TEXT_COLOR, text_align="center"),
+                    ft.Container(height=5),
+                    
+                    # TOMBOL SIMULASI ASLIMU!
+                    create_filled_button(
+                        "Simulasi Scan",
+                        "#F59E0B",
+                        lambda coba: proses_scan(coba, simu_uid="2616388389"),
+                        height=35,
+                    ),
+                ],
+                alignment="center", horizontal_alignment="center", spacing=5
+            ),
+            width=300, 
+            height=TINGGI_PANEL, # Sedikit diperpanjang agar muat tombol dan status_text
+            padding=20, 
+            bgcolor="#EFF6FF",
+            border_radius=20, 
+            border=ft.border.all(3, BLUE_SENSOR),
+            alignment=ft.Alignment(0, 0),
+            on_click=lambda _: input_tag.focus() if state["aktif"] else None
+        )
+        # ==========================================
+        # STEP 5: GABUNGAN LAYOUT UTAMA (SPLIT SCREEN)
+        # ==========================================
+        main_layout = ft.Row(
+            [
+                # Panel Kiri (Mesin Scan & Teks Status Aslimu)
+                scan_area,
+                
+                ft.Container(width=30), # Spacer pemisah di tengah
+                
+                # Panel Kanan (Daftar Kapsul & Tombol Konfirmasi ui_komponen)
+                ft.Container(
+                    height=TINGGI_PANEL,
+                    content=ft.Column(
+                        [
+                            ft.Column(
+                                [teks_indikator, list_scanned_ui,]
+                            ), 
+                            ft.Container(height=5), # Jarak kecil sebelum tombol
+                            ft.Container(content=btn_confirm, alignment=ft.Alignment(0,0), padding=ft.padding.only(top=-8)) # Tengahkan tombol
+                        ], 
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    ),
+                    expand=True
+                )
+            ],
+            alignment="center",
+            vertical_alignment="start"
+        )
+
+        # Wrapper kotak besar putih agar HMI terlihat elegan
+        content_card = ft.Container(
+            content=main_layout,
+            width=850, 
+            height=430,
+            padding=ft.padding.only(left=40, right=40, top=40, bottom=20), 
+            bgcolor="white",
+            border_radius=20, 
+            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-90) # Tarik agak ke atas agar pas di layar HMI
+        )
+
+        update_ui() # Render antrean pertama kali (0 / N)
+
+        # Cetak menggunakan build_standard_layout andalanmu
+        page.add(
+            build_standard_layout(
+                content_card,
+                back_func=lambda _: [state.update({"aktif": False}), nav["show_list_pinjaman_user"]()]
+            ),
+            input_tag # Masukkan textfield gaib ke dalam layar
+        )
+        
+        # Thread penjaga kursor (Persis seperti kodingan aslimu)
+        def keep_focus():
+            time.sleep(0.5)
+            if state["aktif"]:
+                input_tag.focus()
+                page.update()
+        threading.Thread(target=keep_focus).start()
+
+    # ------------------------------------------------------------------
+    # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
+    # ------------------------------------------------------------------
+    def show_scan_tag_alat(tool_name, pin_terpilih):
+        page.clean()
+        state = {"aktif": True}
+
+        # mengambil UID asli dari Db untuk modal tombol simulasi
+        uid_simulasi_benar = ""
+        try:
+            with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                res = (
+                    conn.cursor()
+                    .execute(
+                        "SELECT rfid_tag_uid FROM tools WHERE TRIM(name) = ?",
+                        (tool_name.strip(),),
+                    )
+                    .fetchone()
+                )
+                if res:
+                    uid_simulasi_benar = str(res[0])
+                print(
+                    f"🔍 DEBUG CARI UID: Alat '{tool_name}' -> Ditemukan UID: '{uid_simulasi_benar}'"
+                )
+        except:
+            pass
+        input_tag = ft.TextField(
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
+            on_blur=lambda e: input_tag.focus() if state.get("aktif") else None,
+        )
+
+        def keluar_halaman(tujuan_func):
+            state["aktif"] = False
+            input_tag.disabled = True
+            page.update()
+            tujuan_func()
+
+        async def proses_scan_tag(e, simu_uid=None):
+            if not state["aktif"]:
+                return
+            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
+            print(
+                f"🚀 DEBUG UID SCAN: Alat = {tool_name} | UID = '{uid_tag}' | Pin = {pin_terpilih}"
+            )
+            input_tag.disabled = True
+            visual_card.border = ft.border.all(3, "#F59E0B")
+            status_text.value = "Mencocokkan Data..."
+            status_text.color = "#F59E0B"
+            page.update()
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    tag_data = (
+                        conn.cursor()
+                        .execute(
+                            "SELECT name FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ? AND mqtt_topic = ?",
+                            (uid_tag, pin_terpilih),
+                        )
+                        .fetchone()
+                    )
+                if tag_data:
+                    nama_di_db = tag_data[0]
+                    if nama_di_db.lower() == tool_name.lower():
+                        state["aktif"] = False
+                        visual_card.border = ft.border.all(3, GREEN_SENSOR)
+                        status_text.value = "Verifikasi Sukses!"
+                        status_text.color = GREEN_SENSOR
+                        page.update()
+                        simpan_log(session_data["user_now"], nama_di_db, "PINJAM")
+                        await asyncio.sleep(0.5)
+                        keluar_halaman(lambda: show_all_done(nama_di_db))
+                    else:
+                        visual_card.border = ft.border.all(3, "red")
+                        status_text.value = f"SALAH ALAT!\nTerdeteksi: {nama_di_db}"
+                        status_text.color = "red"
+                        page.update()
+                        await asyncio.sleep(1.5)
+                        visual_card.border = ft.border.all(2, BLUE_SENSOR)
+                        status_text.value = f"Scan Tag RFID pada {tool_name}"
+                        status_text.color = SUB_TEXT_COLOR
+                        input_tag.value = ""
+                        input_tag.disabled = False
+                        input_tag.focus()
+                        page.update()
+                else:
+                    visual_card.border = ft.border.all(3, "red")
+                    status_text.value = "Tag Tidak Dikenal!"
+                    status_text.color = "red"
+                    page.update()
+                    await asyncio.sleep(1.5)
+                    visual_card.border = ft.border.all(2, BLUE_SENSOR)
+                    status_text.value = f"Scan Tag RFID pada {tool_name}"
+                    status_text.color = SUB_TEXT_COLOR
+                    input_tag.value = ""
+                    input_tag.disabled = False
+                    input_tag.focus()
+                    page.update()
+            except Exception as e:
+                print(f"🔥 ERROR FATAL SAAT SCAN: {e}")
+                input_tag.disabled = False
+                input_tag.focus()
+                page.update()
+
+        input_tag.on_submit = proses_scan_tag
+
+        async def bom_waktu_tag():
+            await asyncio.sleep(10.0)
+            if state["aktif"]:
+                state["aktif"] = False
+                visual_card.border = ft.border.all(3, "orange")
+                status_text.value = "Waktu Habis! Transaksi Batal."
+                status_text.color = "orange"
+                page.update()
+                await asyncio.sleep(1.0)
+                keluar_halaman(nav["show_home"])
+
+        status_text = ft.Text(
+            f"Scan Tag RFID pada {tool_name}",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
+        )
+        visual_card = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Container(
+                        content=ft.Image(src="/scanrfid.png", width=120, height=120),
+                        padding=20,
+                        bgcolor="#F8FAFC",
+                        border_radius=60,
+                    ),
+                    ft.Text(
+                        "Verifikasi Alat", size=24, weight="bold", color=TEXT_COLOR
+                    ),
+                    status_text,
+                    ft.Container(height=10),
+                    ft.ProgressRing(
+                        width=25, height=25, color=BLUE_SENSOR, stroke_width=3
+                    ),
+                    ft.Row(
+                        [
+                            create_filled_button(
+                                "Simulasi Scan Tag",
+                                "green",
+                                lambda coba_aja: page.run_task(
+                                    proses_scan_tag,
+                                    coba_aja,
+                                    simu_uid=uid_simulasi_benar,
+                                ),
+                            )
+                        ],
+                        alignment="center",
+                    ),
+                ],
+                horizontal_alignment="center",
+                alignment="center",
+            ),
+            width=450,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
+            border=ft.border.all(2, BLUE_SENSOR),
+            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-130),
+            on_click=lambda _: input_tag.focus() if state["aktif"] else None,
+        )
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [visual_card, input_tag],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
+                back_func=lambda e: keluar_halaman(nav["show_home"]),
+            )
+        )
+        threading.Thread(
+            target=lambda: [time.sleep(0.5), input_tag.focus(), page.update()]
+        ).start()
+        page.run_task(bom_waktu_tag)
+
+    # ------------------------------------------------------------------
+    # SHOW VISUAL SENSOR FLOW (tunggu sensor IR saat AMBIL)
+    # ------------------------------------------------------------------
+    def show_visual_sensor_flow(tool_name, slot_num):
+        page.clean()
+        indicator_circle = ft.Container(
+            content=ft.Text(str(slot_num), size=60, weight="bold", color="white"),
+            width=120,
+            height=120,
+            bgcolor=BLUE_SENSOR,
+            border_radius=60,
+            alignment=ft.Alignment(0, 0),
+            animate=300,
+        )
+
+        radar_ring = ft.ProgressRing(
+            width=150, height=150, stroke_width=8, color=BLUE_SENSOR, bgcolor="E3F2FD"
+        )
+
+        radar_stack = ft.Stack(
+            [radar_ring, ft.Container(content=indicator_circle, top=15, left=15)],
+            width=150,
+            height=150,
+        )
+
+        status_txt = ft.Text(
+            f"DETECT {tool_name.upper()}...",
+            size=22,
+            color=BLUE_SENSOR,
+            weight="bold",
+            text_align="center",
+        )
+
+        sub_status_txt = ft.Text(
+            "Drawer is open. Please take the tool and close the drawer.",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
+        )
+        teks_countdown = ft.Text(
+            "15 seconds", color=ft.Colors.RED, size=20, weight="bold"
+        )
+        box_countdown = ft.Container(
+            content=ft.Row(
+                [ft.Icon(ft.Icons.TIMER, color=ft.Colors.RED, size=24), teks_countdown],
+                alignment="center",
+                spacing=10,
+            ),
+            bgcolor="#FEE2E2",
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            border_radius=20,
+            width=220,
+            animate=300,
+        )
+
+        sensor_box = ft.Container(
+            content=ft.Column(
+                [
+                    radar_stack,
+                    ft.Container(height=10),
+                    status_txt,
+                    sub_status_txt,
+                    ft.Container(height=10),
+                    box_countdown,
+                ],
+                alignment="center",
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            width=700,
+            height=420,
+            bgcolor="white",
+            border=ft.border.all(3, BLUE_SENSOR),
+            border_radius=20,
+            alignment=ft.Alignment(0, 0),
+            shadow=ft.BoxShadow(blur_radius=25, color=SHADOW_COLOR),
+            animate=300,
+            margin=ft.margin.only(top=-100),
+        )
+
+        state = {"aktif": True}
+
+        async def pantau_sensor_diambil():
+            laci_alat = 1
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    res_laci = conn.execute(
+                        "SELECT page FROM tools WHERE name = ? AND mqtt_topic = ?",
+                        (tool_name, slot_num),
+                    ).fetchone()
+                    if res_laci:
+                        laci_alat = res_laci[0]
+            except Exception:
+                pass
+
+            buka_laci_otomatis(laci_alat)
+            kunci_unik = f"{laci_alat}_{slot_num}"
+            waktu_maksimal = 15
+
+            # 🔥 TITIP PESAN KE SENSOR MANAGER
+            target_expected["laci"] = int(laci_alat)
+            target_expected["pin"] = slot_num
+            target_expected["action"] = "AMBIL"
+            target_expected["lockdown"] = False
+            target_expected["wrong_pin"] = None 
+
+            while state["aktif"] and waktu_maksimal > 0:
+                
+                # 🛡️ STEP 1: CEK LOCKDOWN (Menunggu user mengembalikan alat yg salah cabut)
+                if target_expected.get("lockdown"):
+                    indicator_circle.bgcolor = "red"
+                    teks_countdown.color = "red"
+                    # UI BAHASA INGGRIS
+                    sub_status_txt.value = f"🚨 WRONG POSITION! Please return the tool to {target_expected.get('wrong_pin')}!"
+                    sub_status_txt.color = "red"
+                    sub_status_txt.weight = "bold"
+                    page.update()
+                    await asyncio.sleep(0.5)
+                    continue 
+                else:
+                    indicator_circle.bgcolor = BLUE_SENSOR
+                    teks_countdown.color = "red" 
+                    sub_status_txt.value = "Drawer is open. Please take the tool and close the drawer."
+                    sub_status_txt.color = SUB_TEXT_COLOR
+                    sub_status_txt.weight = "normal"
+
+                # ✅ STEP 2: JIKA ALAT BERHASIL DIAMBIL (Sensor = 0)
+                if status_sensor_realtime.get(kunci_unik, 1) == 0:
+                    state["aktif"] = False
+                    
+                    target_expected["laci"] = None
+                    target_expected["pin"] = None
+                    target_expected["action"] = None
+                    target_expected["lockdown"] = False
+                    target_expected["wrong_pin"] = None 
+                    buzzer_off()
+
+                    indicator_circle.bgcolor = GREEN_SENSOR
+                    sub_status_txt.value = "Tool taken successfully!"
+                    sub_status_txt.color = GREEN_SENSOR
+                    page.update()
+                    
+                    await asyncio.sleep(1.5)
+                    # Lanjut ke scan RFID alat
+                    nav["show_scan_tag_alat"](tool_name, slot_num) 
+                    return
+
+                teks_countdown.value = f"{waktu_maksimal} seconds"
+                page.update()
+                await asyncio.sleep(1)
+                waktu_maksimal -= 1
+
+            # ❌ STEP 3: TIMEOUT
+            if state["aktif"]:
+                state["aktif"] = False
+                target_expected["laci"] = None
+                target_expected["pin"] = None
+                target_expected["action"] = None
+                target_expected["lockdown"] = False
+                target_expected["wrong_pin"] = None 
+                buzzer_off()
+                
+                print("[TIMEOUT] User timeout.")
+                nav["show_home"]()
+
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [sensor_box],
+                    alignment="center",
+                    horizontal_alignment="center",
+                )
+            )
+        )
+        page.run_task(pantau_sensor_diambil)
+
+    # ------------------------------------------------------------------
+    # SHOW POSITION SELECTION
+    # ------------------------------------------------------------------
+    def show_position_selection(name, data):
+        page.clean()
+        laci_saat_ini = data.get("page", 1)
+
+        # ambil jumlah slot dari config.json
+        jumlah_slot = DRAWER_CAPACITY.get(laci_saat_ini, 16)
+
+        posisi_aktif = get_tool_positions(name, laci_saat_ini)
+        pos_grid = ft.GridView(expand=True, max_extent=70, spacing=10)
+
+        # Looping dinamis mulai dari 1 sampai jumlah_slot
+        for i in range(1, jumlah_slot + 1):
+            kode_pin = f"P{str(i).zfill(2)}"
+
+            # Cek database apakah slot sesuai dengan alat yang didaftarkan di database
+            is_milik_alat = kode_pin in posisi_aktif
+
+            # Kode unik untuk masing2 alat untuk menentukan posisi dan laci dimana alat berada
+            kode_unik = f"{laci_saat_ini}_{kode_pin}"
+
+            # mengecek apakah alat terdeteksi sensor inframerah atau tidak
+            is_fisik_ada = status_sensor_realtime.get(kode_unik, 1) == 1
+
+            # Kotak akan aktif jika alat terdeteksi sensor inframerah
+            is_available = is_milik_alat and is_fisik_ada
+
+            if is_available:
+                # kotak aktif jika ada bendanya
+                kotak = ft.Container(
+                    content=ft.Text(str(i), weight="bold", color=TEXT_COLOR),
+                    alignment=ft.Alignment(0, 0),
+                    bgcolor="white",
+                    border=ft.border.all(2, GREEN_SENSOR),
+                    border_radius=10,
+                    ink=True,
+                    on_click=lambda e, p=kode_pin: show_visual_sensor_flow(name, p),
+                )
+            else:
+                # Kotak abu-abu jika bukan barangnya
+                kotak = ft.Container(
+                    content=ft.Text(str(i), weight="bold", color="grey"),
+                    alignment=ft.Alignment(0, 0),
+                    bgcolor="#E5E7EB",
+                    border=ft.border.all(2, "#D1D5DB"),
+                    border_radius=10,
+                )
+            pos_grid.controls.append(kotak)
+
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [
+                        ft.Text(
+                            f"Position for {name}",
+                            size=32,
+                            weight="bold",
+                            color=TEXT_COLOR,
+                        ),
+                        ft.Container(height=20),
+                        ft.Container(content=pos_grid, height=300, width=600),
+                    ],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
+                back_func=nav["show_peminjaman_page"],
+            )
+        )
+
+    # ------------------------------------------------------------------
+    # SHOW RFID PAGE (scan kartu user/admin)
+    # ------------------------------------------------------------------
+    def show_rfid_page(
+        title_text, next_destination_func, back_destination_func, tipe_akses="user"
+    ):
+        page.clean()
+        state = {"aktif": True}
+        input_rfid = ft.TextField(
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
+            on_blur=lambda e: input_rfid.focus() if state.get("aktif") else None,
+        )
+
+        def keluar_halaman(tujuan_func):
+            state["aktif"] = False
+            input_rfid.disabled = True
+            page.update()
+            tujuan_func()
+
+        async def proses_scan_usb(e, simu_uid=None):
+            if not state["aktif"]:
+                return
+            state["aktif"] = False
+            uid_kartu = simu_uid if simu_uid else str(e.control.value).strip()
+            input_rfid.disabled = True
+            visual_card.border = ft.border.all(3, "#F59E0B")
+            status_text.value = "Memeriksa ID..."
+            status_text.color = "#F59E0B"
+            page.update()
+            try:
+                with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
+                    if tipe_akses == "admin":
+                        user_data = (
+                            conn.cursor()
+                            .execute(
+                                "SELECT username FROM admins WHERE CAST(rfid_card_uid AS TEXT) = ?",
+                                (uid_kartu,),
+                            )
+                            .fetchone()
+                        )
+                    else:
+                        user_data = (
+                            conn.cursor()
+                            .execute(
+                                "SELECT nama FROM users WHERE CAST(rfid_card_uid AS TEXT) = ?",
+                                (uid_kartu,),
+                            )
+                            .fetchone()
+                        )
+                if user_data:
+                    nama_user = user_data[0]
+                    session_data["user_now"] = nama_user
+
+                    if tipe_akses.lower() == "user":
+                        from db_manager import cek_koin_user
+
+                        sisa_koin = cek_koin_user(nama_user)
+
+                        if sisa_koin <= 0:
+                            visual_card.border = ft.border.all(3, "red")
+                            status_text.value = (
+                                f"Akses ditolak! \nKoin Anda Habis (Sisa: 0)"
+                            )
+                            status_text.color = "red"
+                            page.update()
+                            await asyncio.sleep(3.0)
+                            keluar_halaman(back_destination_func)
+                            return  # stop proses disini
+                    visual_card.border = ft.border.all(3, GREEN_SENSOR)
+
+                    status_text.value = (
+                        f"Akses diberikan \nHalo {nama_user} (Koin: {sisa_koin})"
+                        if tipe_akses.lower() == "user"
+                        else f"Akses diberikan! \Halo {nama_user}"
+                    )
+
+                    status_text.color = GREEN_SENSOR
+                    page.update()
+                    await asyncio.sleep(1.0)
+                    keluar_halaman(next_destination_func)
+
+                else:
+                    visual_card.border = ft.border.all(3, "red")
+                    status_text.value = "Akses Ditolak!\nKartu tidak sesuai hak akses."
+                    status_text.color = "red"
+                    page.update()
+                    await asyncio.sleep(2.0)
+                    keluar_halaman(back_destination_func)
+            except Exception as err:
+                print(f"❌ ERROR DATABASE RFID: {err}")
+                visual_card.border = ft.border.all(3, "red")
+                status_text.value = f"Sistem error:\n{err}"
+                status_text.color = "red"
+                page.update()
+                await asyncio.sleep(3.0)
+                keluar_halaman(back_destination_func)
+
+        input_rfid.on_submit = proses_scan_usb
+
+        async def bom_waktu():
+            await asyncio.sleep(5.0)
+            if state["aktif"]:
+                state["aktif"] = False
+                status_text.value = "Waktu Habis!"
+                status_text.color = "orange"
+                page.update()
+                await asyncio.sleep(0.5)
+                keluar_halaman(back_destination_func)
+
+        status_text = ft.Text(
+            "Silakan tempelkan ID Card Anda",
+            size=16,
+            color=SUB_TEXT_COLOR,
+            text_align="center",
+        )
+        visual_card = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Container(
+                        content=ft.Image(src="/scanrfid.png", width=120, height=120),
+                        padding=20,
+                        bgcolor="#F8FAFC",
+                        border_radius=60,
+                    ),
+                    ft.Text(title_text, size=24, weight="bold", color=TEXT_COLOR),
+                    status_text,
+                    ft.Container(height=10),
+                    ft.ProgressRing(
+                        width=25, height=25, color=BLUE_SENSOR, stroke_width=3
+                    ),
+                    ft.Row(
+                        [
+                            create_filled_button(
+                                "Simulasi Admin",
+                                "blue",
+                                lambda kejadian_klik: page.run_task(
+                                    proses_scan_usb,
+                                    kejadian_klik,
+                                    simu_uid="3676831940",
+                                ),
+                            ),
+                            create_filled_button(
+                                "Simulasi User",
+                                "green",
+                                lambda kejadian_klik: page.run_task(
+                                    proses_scan_usb,
+                                    kejadian_klik,
+                                    simu_uid="2344461204",
+                                ),
+                            ),
+                        ],
+                        alignment="center",
+                        spacing=10,
+                    ),
+                ],
+                horizontal_alignment="center",
+                alignment="center",
+            ),
+            width=450,
+            padding=40,
+            bgcolor="white",
+            border_radius=20,
+            margin=ft.margin.only(top=-100),
+            border=ft.border.all(2, BLUE_SENSOR),
+            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            on_click=lambda _: input_rfid.focus() if state["aktif"] else None,
+        )
+        page.add(
+            build_standard_layout(
+                ft.Column(
+                    [visual_card, input_rfid],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
+                back_func=lambda e: keluar_halaman(back_destination_func),
+            )
+        )
+        threading.Thread(
+            target=lambda: [time.sleep(0.5), input_rfid.focus(), page.update()]
+        ).start()
+        page.run_task(bom_waktu)
+
+    # ------------------------------------------------------------------
+    # Daftarkan ke nav
+    # ------------------------------------------------------------------
+    nav["show_rfid_page"] = show_rfid_page
+    nav["show_position_selection"] = show_position_selection
+    nav["show_visual_sensor_flow"] = show_visual_sensor_flow
+    nav["show_scan_tag_alat"] = show_scan_tag_alat
+    nav["show_all_done"] = show_all_done
+    nav["show_scan_kembali"] = show_scan_kembali
+    nav["show_konfirmasi_kembali"] = show_konfirmasi_kembali
+    nav["show_visual_sensor_kembali"] = show_visual_sensor_kembali
+    nav["show_all_done_kembali"] = show_all_done_kembali
