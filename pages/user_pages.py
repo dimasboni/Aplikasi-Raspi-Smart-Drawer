@@ -228,7 +228,18 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                     )
                 )
             else:
-                for i, alat in enumerate(borrowed[start_idx:end_idx]):
+                # Kelompokkan nama alat dan hitung qty
+                qty_per_alat = {}
+                for nm in borrowed:
+                    qty_per_alat[nm] = qty_per_alat.get(nm, 0) + 1
+                # Buat list unik (tanpa duplikat) dengan urutan pertama muncul
+                unik_alat = []
+                for nm in borrowed:
+                    if nm not in unik_alat:
+                        unik_alat.append(nm)
+
+                for i, alat in enumerate(unik_alat[start_idx:end_idx]):
+                    qty = qty_per_alat.get(alat, 1)
                     list_container.controls.append(
                         ft.Container(
                             content=ft.Row([
@@ -239,7 +250,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                                 ),
                                 ft.Text(alat, size=16, weight="bold", color="black", expand=True),
                                 ft.Container(
-                                    content=ft.Text("Qty: 1", color="white", size=12, weight="bold"),
+                                    content=ft.Text(f"Qty: {qty}", color="white", size=12, weight="bold"),
                                     bgcolor="#111827",
                                     padding=ft.padding.symmetric(horizontal=12, vertical=6),
                                     border_radius=15,
@@ -249,7 +260,7 @@ def register_user_pages(page: ft.Page, session_data: dict, nav: dict):
                         )
                     )
             btn_prev.disabled = state["page"] == 0
-            btn_next_page.disabled = end_idx >= len(borrowed)
+            btn_next_page.disabled = (state["page"] + 1) * items_per_page >= len(qty_per_alat if borrowed else [])
             page.update()
 
         def change_page(delta):

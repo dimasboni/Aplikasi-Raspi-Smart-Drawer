@@ -711,15 +711,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     status_text, 
                     
                     ft.Text("Tempelkan tag RFID\nalat pada reader", size=14, color=SUB_TEXT_COLOR, text_align="center"),
-                    ft.Container(height=5),
-                    
-                    # TOMBOL SIMULASI ASLIMU!
-                    create_filled_button(
-                        "Simulasi Scan",
-                        "#F59E0B",
-                        lambda coba: proses_scan(coba, simu_uid="2616388389"),
-                        height=35,
-                    ),
                 ],
                 alignment="center", horizontal_alignment="center", spacing=5
             ),
@@ -936,20 +927,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     ft.Container(height=10),
                     ft.ProgressRing(
                         width=25, height=25, color=BLUE_SENSOR, stroke_width=3
-                    ),
-                    ft.Row(
-                        [
-                            create_filled_button(
-                                "Simulasi Scan Tag",
-                                "green",
-                                lambda coba_aja: page.run_task(
-                                    proses_scan_tag,
-                                    coba_aja,
-                                    simu_uid=uid_simulasi_benar,
-                                ),
-                            )
-                        ],
-                        alignment="center",
                     ),
                 ],
                 horizontal_alignment="center",
@@ -1361,30 +1338,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     ft.Container(height=10),
                     ft.ProgressRing(
                         width=25, height=25, color=BLUE_SENSOR, stroke_width=3
-                    ),
-                    ft.Row(
-                        [
-                            create_filled_button(
-                                "Simulasi Admin",
-                                "blue",
-                                lambda kejadian_klik: page.run_task(
-                                    proses_scan_usb,
-                                    kejadian_klik,
-                                    simu_uid="3676831940",
-                                ),
-                            ),
-                            create_filled_button(
-                                "Simulasi User",
-                                "green",
-                                lambda kejadian_klik: page.run_task(
-                                    proses_scan_usb,
-                                    kejadian_klik,
-                                    simu_uid="2344461204",
-                                ),
-                            ),
-                        ],
-                        alignment="center",
-                        spacing=10,
                     ),
                 ],
                 horizontal_alignment="center",
