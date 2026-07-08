@@ -480,25 +480,23 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         )
 
     # ------------------------------------------------------------------
-    # SHOW SCAN KEMBALI (scan RFID alat saat pengembalian)
+    # SHOW SCAN KEMBALI (scan RFID alat saat pengembalian) - VERSI FINAL
     # ------------------------------------------------------------------
     def show_scan_kembali(borrowed):
         page.clean()
         scanned_tools = []
+        
         state = {"aktif": True}
+        
+        # borrowed adalah list nama alat (bisa duplikat jika qty > 1)
+        # Contoh: ["Tang", "Tang", "Obeng"] artinya Tang dipinjam 2x
         borrowed_names = [b["name"] if isinstance(b, dict) else b for b in borrowed]
-        total_pinjaman = len(borrowed_names)
-
-        input_tag = ft.TextField(
-            autofocus=True,
-            width=1,
-            height=1,
-            border=ft.InputBorder.NONE,
-            color="transparent",
-            bgcolor="transparent",
-            cursor_color="transparent",
-            on_blur=lambda e: input_tag.focus() if state["aktif"] else None,
-        )
+        total_pinjaman = len(borrowed_names)  # total unit yang harus dikembalikan
+        
+        # Hitung qty per nama untuk validasi scan
+        borrowed_qty = {}
+        for nm in borrowed_names:
+            borrowed_qty[nm] = borrowed_qty.get(nm, 0) + 1
 
         list_scanned_ui = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, height=220)
         teks_indikator = ft.Text(f"0/{total_pinjaman} tools scanned", weight="bold", color=SUB_TEXT_COLOR, size=16)
@@ -524,11 +522,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             def tutup_dialog(e):
                 dialog.open=False
                 page.update()
-                input_tag.focus()
+                # Kembalikan fokus ke input setelah dialog ditutup
+                input_rfid.focus()
 
             def lanjut_buka_laci(e):
                 dialog.open = False
                 state["aktif"]=False
+                input_rfid.disabled = True
                 page.update()
                 pin_tujuan_pertama = scanned_tools[0]["pin"]
                 nav["show_visual_sensor_kembali"](scanned_tools, 0, pin_tujuan_pertama)
@@ -561,12 +561,20 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
 
         btn_confirm = create_filled_button(
-            "Selesai & Konfirmasi",
-            GREEN_SENSOR,
-            tampilkan_dialog_konfirmasi,
-            width=350,
-            height=50,
-            disabled=True,
+            "Selesai & Konfirmasi", GREEN_SENSOR, tampilkan_dialog_konfirmasi, width=350, height=50, disabled=True,
+        )
+
+        # 🔑 Hidden TextField — penerima karakter dari RFID reader USB HID
+        input_rfid = ft.TextField(
+            autofocus=True,
+            width=1,
+            height=1,
+            border=ft.InputBorder.NONE,
+            color="transparent",
+            bgcolor="transparent",
+            cursor_color="transparent",
+            # Jika blur/kehilangan fokus, langsung minta fokus kembali
+            on_blur=lambda e: input_rfid.focus() if state.get("aktif") else None,
         )
 
         def update_ui():
@@ -632,136 +640,126 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         input_rfid.on_submit = proses_scan_dari_input
 
         def proses_scan(uid_tag):
+            """Memproses UID tag yang sudah lengkap dari reader."""
             if not state["aktif"]: return
-
+            
             try:
                 with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-                    res = (
-                        conn.cursor()
-                        .execute(
-                            "SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?",
-                            (uid_tag,)
-                        )
-                        .fetchone()
-                    )
+                    res = conn.cursor().execute("SELECT name, mqtt_topic, page FROM tools WHERE TRIM(CAST(rfid_tag_uid AS TEXT)) = ?", (uid_tag,)).fetchone()
                     
                 if res:
                     tool_name, tool_pin, tool_laci = res[0], res[1], res[2]
                     
-                    # Kita cek ke borrowed_names yang sudah diekstrak di awal
+                    # Hitung berapa kali alat ini sudah di-scan
+                    sudah_scan_nama = sum(1 for item in scanned_tools if item["name"] == tool_name)
+                    qty_dibutuhkan = borrowed_qty.get(tool_name, 0)
+                    
                     if tool_name in borrowed_names:
-                        sudah_ada = any(item["pin"] == tool_pin for item in scanned_tools)
-                        if not sudah_ada:
-                            scanned_tools.append({
-                                "name": tool_name,
-                                "pin": tool_pin,
-                                "laci": tool_laci,
-                            })
-                            status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
-                            status_text.color = "#10B981" # Hijau
-                            update_ui()
-                        else:
-                            status_text.value = f"Sudah di-scan: {tool_name}"
+                        # Cek apakah pin spesifik ini sudah di-scan
+                        sudah_ada_pin = any(item["pin"] == tool_pin for item in scanned_tools)
+                        
+                        if sudah_ada_pin:
+                            status_text.value = f"Pin ini sudah di-scan: {tool_name} ({tool_pin})"
                             status_text.color = "orange"
+                            page.update()
+                            input_rfid.focus()
+                        elif sudah_scan_nama >= qty_dibutuhkan:
+                            # Sudah scan sebanyak qty yang dipinjam
+                            status_text.value = f"Sudah di-scan {sudah_scan_nama}x: {tool_name}"
+                            status_text.color = "orange"
+                            page.update()
+                            input_rfid.focus()
+                        else:
+                            scanned_tools.append({"name": tool_name, "pin": tool_pin, "laci": tool_laci})
+                            status_text.value = f"Berhasil: {tool_name} (Asal:{tool_pin})"
+                            status_text.color = "#10B981"
+                            update_ui()
                     else:
                         status_text.value = f"Bukan pinjaman Anda: {tool_name}"
                         status_text.color = "red"
+                        page.update()
+                        input_rfid.focus()
                 else:
                     status_text.value = "Tag Tidak Dikenal!"
                     status_text.color = "red"
-                    
+                    page.update()
+                    input_rfid.focus()
             except Exception as err:
                 print("DB Error:", err)
-                
-            page.update()
-            input_tag.focus()
+                input_rfid.focus()
 
-        # Sambungkan ke input_tag andalanmu
-        input_tag.on_submit = proses_scan
         TINGGI_PANEL = 500
-        # 🔥 Menggabungkan desain Split-Screen dengan UI Aslimu
         scan_area = ft.Container(
             content=ft.Column(
                 [
                     ft.Icon(ft.Icons.WIFI_TETHERING, size=70, color=ft.Colors.BLUE),
                     ft.Text("Area Scan Aktif", size=20, weight="bold", color=TEXT_COLOR),
-                    
-                    # INI DIA TEKS FEEDBACK ASLIMU!
                     status_text, 
-                    
                     ft.Text("Tempelkan tag RFID\nalat pada reader", size=14, color=SUB_TEXT_COLOR, text_align="center"),
                 ],
                 alignment="center", horizontal_alignment="center", spacing=5
             ),
-            width=300, 
-            height=TINGGI_PANEL, # Sedikit diperpanjang agar muat tombol dan status_text
-            padding=20, 
-            bgcolor="#EFF6FF",
-            border_radius=20, 
-            border=ft.border.all(3, BLUE_SENSOR),
-            alignment=ft.Alignment(0, 0),
-            on_click=lambda _: input_tag.focus() if state["aktif"] else None
+            width=300, height=TINGGI_PANEL, padding=20, bgcolor="#EFF6FF", border_radius=20, 
+            border=ft.border.all(3, BLUE_SENSOR), alignment=ft.Alignment(0, 0),
+            # Klik area scan → kembalikan fokus ke input
+            on_click=lambda _: input_rfid.focus() if state["aktif"] else None,
         )
-        # ==========================================
-        # STEP 5: GABUNGAN LAYOUT UTAMA (SPLIT SCREEN)
-        # ==========================================
+
         main_layout = ft.Row(
             [
-                # Panel Kiri (Mesin Scan & Teks Status Aslimu)
                 scan_area,
-                
-                ft.Container(width=30), # Spacer pemisah di tengah
-                
-                # Panel Kanan (Daftar Kapsul & Tombol Konfirmasi ui_komponen)
+                ft.Container(width=30), 
                 ft.Container(
                     height=TINGGI_PANEL,
                     content=ft.Column(
                         [
-                            ft.Column(
-                                [teks_indikator, list_scanned_ui,]
-                            ), 
-                            ft.Container(height=5), # Jarak kecil sebelum tombol
-                            ft.Container(content=btn_confirm, alignment=ft.Alignment(0,0), padding=ft.padding.only(top=-8)) # Tengahkan tombol
+                            ft.Column([teks_indikator, list_scanned_ui]), 
+                            ft.Container(height=5),
+                            ft.Container(content=btn_confirm, alignment=ft.Alignment(0,0), padding=ft.padding.only(top=-8))
                         ], 
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
                     expand=True
                 )
             ],
-            alignment="center",
-            vertical_alignment="start"
+            alignment="center", vertical_alignment="start"
         )
 
-        # Wrapper kotak besar putih agar HMI terlihat elegan
         content_card = ft.Container(
-            content=main_layout,
-            width=850, 
-            height=430,
-            padding=ft.padding.only(left=40, right=40, top=40, bottom=20), 
-            bgcolor="white",
-            border_radius=20, 
-            shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
-            margin=ft.margin.only(top=-90) # Tarik agak ke atas agar pas di layar HMI
+            content=main_layout, width=850, height=430, padding=ft.padding.only(left=40, right=40, top=40, bottom=20), 
+            bgcolor="white", border_radius=20, shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
+            margin=ft.margin.only(top=-90) 
         )
 
-        update_ui() # Render antrean pertama kali (0 / N)
+        update_ui() 
 
-        # Cetak menggunakan build_standard_layout andalanmu
         page.add(
             build_standard_layout(
-                content_card,
-                back_func=lambda _: [state.update({"aktif": False}), nav["show_list_pinjaman_user"]()]
-            ),
-            input_tag # Masukkan textfield gaib ke dalam layar
+                ft.Column(
+                    [content_card, input_rfid],
+                    horizontal_alignment="center",
+                    alignment="center",
+                ),
+                back_func=lambda _: [
+                    state.update({"aktif": False}), 
+                    setattr(input_rfid, "disabled", True), 
+                    nav["show_list_pinjaman_user"]()
+                ]
+            )
         )
         
-        # Thread penjaga kursor (Persis seperti kodingan aslimu)
+        # 🔥 KUNCI UTAMA: Penjaga fokus abadi (seperti di show_scan_tag_alat tapi dilooping)
         def keep_focus():
-            time.sleep(0.5)
-            if state["aktif"]:
-                input_tag.focus()
-                page.update()
-        threading.Thread(target=keep_focus).start()
+            while state.get("aktif"):
+                time.sleep(0.5)
+                if state.get("aktif"):
+                    try:
+                        input_rfid.focus()
+                        page.update()
+                    except:
+                        pass
+
+        threading.Thread(target=keep_focus, daemon=True).start()
 
     # ------------------------------------------------------------------
     # SHOW SCAN TAG ALAT (verifikasi RFID alat saat peminjaman)
@@ -770,25 +768,6 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
         page.clean()
         state = {"aktif": True}
 
-        # mengambil UID asli dari Db untuk modal tombol simulasi
-        uid_simulasi_benar = ""
-        try:
-            with sqlite3.connect("smartdrawer.db", timeout=20) as conn:
-                res = (
-                    conn.cursor()
-                    .execute(
-                        "SELECT rfid_tag_uid FROM tools WHERE TRIM(name) = ?",
-                        (tool_name.strip(),),
-                    )
-                    .fetchone()
-                )
-                if res:
-                    uid_simulasi_benar = str(res[0])
-                print(
-                    f"🔍 DEBUG CARI UID: Alat '{tool_name}' -> Ditemukan UID: '{uid_simulasi_benar}'"
-                )
-        except:
-            pass
         input_tag = ft.TextField(
             autofocus=True,
             width=1,
@@ -806,13 +785,10 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             page.update()
             tujuan_func()
 
-        async def proses_scan_tag(e, simu_uid=None):
+        async def proses_scan_tag(e):
             if not state["aktif"]:
                 return
-            uid_tag = simu_uid if simu_uid else str(input_tag.value).strip()
-            print(
-                f"🚀 DEBUG UID SCAN: Alat = {tool_name} | UID = '{uid_tag}' | Pin = {pin_terpilih}"
-            )
+            uid_tag = str(input_tag.value).strip()
             input_tag.disabled = True
             visual_card.border = ft.border.all(3, "#F59E0B")
             status_text.value = "Mencocokkan Data..."
