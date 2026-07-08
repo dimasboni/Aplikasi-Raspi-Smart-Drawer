@@ -522,13 +522,11 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             def tutup_dialog(e):
                 dialog.open=False
                 page.update()
-                # Kembalikan fokus ke input setelah dialog ditutup
-                input_rfid.focus()
 
             def lanjut_buka_laci(e):
                 dialog.open = False
                 state["aktif"]=False
-                input_rfid.disabled = True
+                page.on_keyboard_event = None
                 page.update()
                 pin_tujuan_pertama = scanned_tools[0]["pin"]
                 nav["show_visual_sensor_kembali"](scanned_tools, 0, pin_tujuan_pertama)
