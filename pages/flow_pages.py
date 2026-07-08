@@ -694,8 +694,13 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             except Exception as err:
                 print("DB Error:", err)
                 
-            page.update()
-            input_tag.focus()
+            if state["aktif"]:
+                input_tag.value = "" # Kosongkan teksnya dulu
+                
+                # Gunakan threading dengan lambda persis seperti di halaman show_rfid_page milikmu!
+                threading.Thread(
+                    target=lambda: [time.sleep(0.1), input_tag.focus(), page.update()]
+                ).start()
 
         # Sambungkan ke input_tag andalanmu
         input_tag.on_submit = proses_scan
