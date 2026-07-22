@@ -1208,25 +1208,27 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
 
                         if sisa_koin <= 0:
                             visual_card.border = ft.border.all(3, "red")
-                            status_text.value = (
-                                f"Akses ditolak! \nKoin Anda Habis (Sisa: 0)"
-                            )
+                            status_text.value = f"Akses ditolak!\nKoin Anda Habis"
                             status_text.color = "red"
+                            status_text.size = 20
+                            koin_text.value = "Sisa 0 Koin"
+                            koin_text.color = "red"
                             page.update()
-                            await asyncio.sleep(3.0)
+                            await asyncio.sleep(4.0)
                             keluar_halaman(back_destination_func)
                             return  # stop proses disini
                     visual_card.border = ft.border.all(3, GREEN_SENSOR)
 
-                    status_text.value = (
-                        f"Akses diberikan \nHalo {nama_user} (Koin: {sisa_koin})"
-                        if tipe_akses.lower() == "user"
-                        else f"Akses diberikan! \Halo {nama_user}"
-                    )
-
+                    status_text.value = f"Akses diberikan \nHalo {nama_user}"
                     status_text.color = GREEN_SENSOR
+                    status_text.size = 20
+                    
+                    if tipe_akses.lower() == "user":
+                        koin_text.value = f"🪙 Koin: {sisa_koin}"
+                        koin_text.color = "#F59E0B"
+
                     page.update()
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(4.0)
                     keluar_halaman(next_destination_func)
 
                 else:
@@ -1263,6 +1265,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             color=SUB_TEXT_COLOR,
             text_align="center",
         )
+        koin_text = ft.Text("", size=40, weight="bold", color="#F59E0B", text_align="center")
+        
         visual_card = ft.Container(
             content=ft.Column(
                 [
@@ -1274,6 +1278,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     ),
                     ft.Text(title_text, size=24, weight="bold", color=TEXT_COLOR),
                     status_text,
+                    koin_text,
                     ft.Container(height=10),
                     ft.ProgressRing(
                         width=25, height=25, color=BLUE_SENSOR, stroke_width=3
@@ -1291,10 +1296,18 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             shadow=ft.BoxShadow(blur_radius=30, color=SHADOW_COLOR),
             on_click=lambda _: input_rfid.focus() if state["aktif"] else None,
         )
+        btn_simulasi = ft.ElevatedButton(
+            "Simulasi Scan (2344461204)",
+            on_click=lambda e: page.run_task(proses_scan_usb, e, "2344461204"),
+            bgcolor="#E2E8F0",
+            color="#475569",
+            scale=0.8,
+        )
+
         page.add(
             build_standard_layout(
                 ft.Column(
-                    [visual_card, input_rfid],
+                    [visual_card, input_rfid, btn_simulasi],
                     horizontal_alignment="center",
                     alignment="center",
                 ),
