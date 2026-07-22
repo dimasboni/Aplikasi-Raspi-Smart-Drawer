@@ -1211,7 +1211,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                             status_text.value = f"Akses ditolak!\nKoin Anda Habis"
                             status_text.color = "red"
                             status_text.size = 20
-                            koin_text.value = "Sisa 0 Koin"
+                            koin_text.value = "Coins : 0"
                             koin_text.color = "red"
                             page.update()
                             await asyncio.sleep(4.0)
@@ -1224,8 +1224,8 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
                     status_text.size = 20
                     
                     if tipe_akses.lower() == "user":
-                        koin_text.value = f"🪙 Koin: {sisa_koin}"
-                        koin_text.color = "#F59E0B"
+                        koin_text.value = f"Coins : {sisa_koin}"
+                        koin_text.color = GREEN_SENSOR
 
                     page.update()
                     await asyncio.sleep(4.0)
@@ -1265,7 +1265,7 @@ def register_flow_pages(page: ft.Page, session_data: dict, nav: dict):
             color=SUB_TEXT_COLOR,
             text_align="center",
         )
-        koin_text = ft.Text("", size=40, weight="bold", color="#F59E0B", text_align="center")
+        koin_text = ft.Text("", size=40, weight="normal", color=GREEN_SENSOR, text_align="center")
         
         visual_card = ft.Container(
             content=ft.Column(
